@@ -1,0 +1,5 @@
+window.CONFIG = {
+  TWELVEDATA_KEY: "04ee01f1e42a4afe977f047fdc5678be",
+  INTERVAL: "5min",
+  LOOKBACK_BARS: 12
+};

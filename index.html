@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>USD Strength Checklist</title>
+  <meta name="theme-color" content="#0B0F19" />
+  <style>
+    :root { color-scheme: dark; }
+    body{margin:0;font-family:system-ui;background:#0B0F19;color:#E5E7EB}
+    .wrap{max-width:560px;margin:0 auto;padding:16px}
+    .card{background:#111827;border:1px solid #1F2937;border-radius:16px;padding:14px;margin:12px 0}
+    h1{font-size:18px;margin:4px 0 10px}
+    .sub{opacity:.85;font-size:12px;line-height:1.35}
+    .row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #1F2937}
+    .row:last-child{border-bottom:none}
+    input[type="checkbox"]{width:22px;height:22px;margin-top:1px}
+    label{line-height:1.2}
+    .badge{display:inline-block;padding:8px 12px;border-radius:999px;font-weight:800}
+    .ok{background:#052e1a;color:#34D399;border:1px solid #065F46}
+    .mid{background:#2a1b00;color:#FBBF24;border:1px solid #92400E}
+    .no{background:#2a0b0b;color:#FCA5A5;border:1px solid #7F1D1D}
+    button{width:100%;padding:12px;border-radius:14px;border:1px solid #1F2937;background:#0f172a;color:#E5E7EB;font-weight:800}
+    .btnRow{display:flex;gap:10px}
+    .btnRow button{flex:1}
+    .tiny{font-size:11px;opacity:.8;margin-top:8px;line-height:1.35}
+    .pill{display:inline-block;padding:4px 8px;border:1px solid #1F2937;border-radius:999px;font-size:11px;opacity:.9}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>USD Strength Checklist</h1>
+      <div class="sub">Netlify-ready • Auto Gold & USD bias</div>
+      <div class="tiny" id="status">Status: Ready</div>
+    </div>
+
+    <div class="card">
+      <div class="row"><input type="checkbox" id="dxy"><label>USD bias is clear</label></div>
+      <div class="row"><input type="checkbox" id="gold"><label>Gold confirms USD bias</label></div>
+      <div class="row"><input type="checkbox" id="gbp"><label>GBPUSD confirms USD bias</label></div>
+      <div class="row"><input type="checkbox" id="news"><label>No high-impact USD news &lt; 60 min</label></div>
+    </div>
+
+    <div class="card">
+      <div class="sub">Score</div>
+      <div style="font-size:34px;font-weight:900" id="score">0 / 4</div>
+      <div id="decision" class="badge no">❌ NO TRADE</div>
+      <div class="tiny" id="lastUpdate">Last update: —</div>
+    </div>
+
+    <div class="btnRow">
+      <button id="refresh">Refresh data</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="tiny">If USD is unclear — protect capital.</div>
+  </div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
