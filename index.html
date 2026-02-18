@@ -8,7 +8,7 @@
   <style>
     :root { color-scheme: dark; }
     body{margin:0;font-family:system-ui;background:#0B0F19;color:#E5E7EB}
-    .wrap{max-width:680px;margin:0 auto;padding:16px}
+    .wrap{max-width:720px;margin:0 auto;padding:16px}
     .card{background:#111827;border:1px solid #1F2937;border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 6px 22px rgba(0,0,0,.25)}
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
     h1{font-size:18px;margin:0}
@@ -46,11 +46,11 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.1</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.2</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
-        Uses <span class="mono">EURUSD</span> as USD proxy, then requires <span class="mono">XAUUSD</span> confirmation + <b>Key Levels</b> (H1 + M15).
+        Requires: USD pressure (EURUSD) + gold confirmation + <b>Key Levels</b> from <b>H1+M15 swings</b> plus <b>Yesterday High/Low</b> and <b>London/NY range</b>.
       </div>
       <div class="tiny" id="lastUpdate">Last update: —</div>
     </div>
@@ -96,7 +96,7 @@
 
     <div class="card" id="levelsCard">
       <div class="row">
-        <div class="pill gray">🧱 Key Levels (H1 + M15)</div>
+        <div class="pill gray">🧱 Key Levels (all sources)</div>
         <div class="pill">Price: <b id="priceNow">—</b></div>
       </div>
 
@@ -117,6 +117,40 @@
       <div class="row">
         <div class="pill" id="locPill">📍 Location: <b id="locState">MID-RANGE</b></div>
         <div class="tiny">“MID-RANGE” = wait. “AT RES” = SELL only. “AT SUP” = BUY only.</div>
+      </div>
+    </div>
+
+    <div class="card" id="sessionLevels">
+      <div class="row">
+        <div class="pill gray">🗓️ Yesterday + Sessions</div>
+        <div class="pill">TZ: <b id="tzLabel">UTC</b></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="k">
+          <div class="t">Yesterday High</div>
+          <div class="v" id="yHigh">—</div>
+          <div class="s" id="yHighDist">—</div>
+        </div>
+        <div class="k">
+          <div class="t">Yesterday Low</div>
+          <div class="v" id="yLow">—</div>
+          <div class="s" id="yLowDist">—</div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="k">
+          <div class="t">London Range (High / Low)</div>
+          <div class="v" id="lonRange">—</div>
+          <div class="s" id="lonDist">—</div>
+        </div>
+        <div class="k">
+          <div class="t">NY Range (High / Low)</div>
+          <div class="v" id="nyRange">—</div>
+          <div class="s" id="nyDist">—</div>
+        </div>
+      </div>
+      <div class="tiny" style="margin-top:10px">
+        These are added into Key Levels automatically. If DST shifts NY/London times, adjust in <b>config.js</b>.
       </div>
     </div>
 

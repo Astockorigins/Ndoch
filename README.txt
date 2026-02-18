@@ -1,16 +1,17 @@
-GOLD SNIPER v2.1 — Key Levels (H1 + M15)
-==========================================
+GOLD SNIPER v2.2 — Yesterday High/Low + London/NY ranges
+==========================================================
 
-NEW:
-- Key Levels engine detects Support/Resistance using H1 + M15 swing points.
-- Trade requires: USD clear + Gold confirms + At key level + Session direction match (4/4).
+NEW
+- Adds Yesterday High/Low (from 15m bars).
+- Adds London + NY range High/Low (from 15m bars) for today's date.
+- All these levels are automatically included in the Key Levels engine.
 
-SETUP:
-1) Paste your Twelve Data key into config.js
-2) Upload index.html, app.js, config.js to your GitHub Pages repo ROOT
-3) Refresh
+Timezone
+- Default assumes Twelve Data timestamps are UTC.
+- If you want session windows in Nairobi time, set TZ_OFFSET_MINUTES: 180 in config.js.
+- DST can shift session times in some months. Adjust LONDON_START / NY_START when needed.
 
-TUNING:
-- Trend threshold: how strong the last 60min move must be.
-- Key level distance: how close price must be to a level to count as “AT LEVEL”.
-- Levels lookback: H1 bars used to build levels.
+Install on GitHub Pages
+1) Paste API key in config.js
+2) Replace your repo root files: index.html, app.js, config.js
+3) Refresh GitHub Pages link
