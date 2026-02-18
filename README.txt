@@ -1,14 +1,17 @@
-NETLIFY READY CHECKLIST
+GOLD SNIPER (UI v2) — GitHub Pages ready
+=========================================
 
-HOW TO DEPLOY:
-1. Open https://app.netlify.com/drop
-2. Upload THIS ZIP (do not unzip)
-3. Wait for green "Published"
-4. Open the link Netlify gives you
-5. Chrome menu → Add to Home Screen
+1) Paste your Twelve Data key into config.js
+2) Upload index.html, app.js, config.js to your GitHub repo root
+3) Enable GitHub Pages: Settings -> Pages -> main / root
+4) Open the link and Add to Home Screen
 
-IMPORTANT:
-- Edit config.js and paste your Twelve Data API key BEFORE uploading
-- index.html must stay in the root (already done)
+How it decides
+- Uses EURUSD move over last 60 minutes as USD pressure proxy:
+  EURUSD down => USD strong => SELL gold bias
+  EURUSD up   => USD weak   => BUY gold bias
+- Confirms with gold move (XAUUSD) in the same direction as the bias
+- Session + direction lock prevents revenge trading
 
-If page shows 404, you uploaded a folder instead of this ZIP.
+Security
+- Public hosting exposes your API key. If you want, we can hide it with a free proxy.
