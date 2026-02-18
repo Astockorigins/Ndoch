@@ -11,7 +11,7 @@ window.CONFIG = {
   LEVELS_M15_INTERVAL: "15min",
 
   // Session windows
-  TZ_OFFSET_MINUTES: 0,          // set to 180 for Nairobi time windows
+  KE_OFFSET_MINUTES: 0,          // set to 180 for Nairobi time windows
   LONDON_START: "08:00",
   LONDON_MINUTES: 180,
   NY_START: "13:30",
