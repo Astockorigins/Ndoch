@@ -1,17 +1,16 @@
-GOLD SNIPER (UI v2) — GitHub Pages ready
-=========================================
+GOLD SNIPER v2.1 — Key Levels (H1 + M15)
+==========================================
 
+NEW:
+- Key Levels engine detects Support/Resistance using H1 + M15 swing points.
+- Trade requires: USD clear + Gold confirms + At key level + Session direction match (4/4).
+
+SETUP:
 1) Paste your Twelve Data key into config.js
-2) Upload index.html, app.js, config.js to your GitHub repo root
-3) Enable GitHub Pages: Settings -> Pages -> main / root
-4) Open the link and Add to Home Screen
+2) Upload index.html, app.js, config.js to your GitHub Pages repo ROOT
+3) Refresh
 
-How it decides
-- Uses EURUSD move over last 60 minutes as USD pressure proxy:
-  EURUSD down => USD strong => SELL gold bias
-  EURUSD up   => USD weak   => BUY gold bias
-- Confirms with gold move (XAUUSD) in the same direction as the bias
-- Session + direction lock prevents revenge trading
-
-Security
-- Public hosting exposes your API key. If you want, we can hide it with a free proxy.
+TUNING:
+- Trend threshold: how strong the last 60min move must be.
+- Key level distance: how close price must be to a level to count as “AT LEVEL”.
+- Levels lookback: H1 bars used to build levels.
