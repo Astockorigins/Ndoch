@@ -1,0 +1,8 @@
+{
+  "name": "gold-sniper-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2025-12-01",
+  "vars": {
+    "ALLOWED_ORIGINS": "*"
+  }
+}
