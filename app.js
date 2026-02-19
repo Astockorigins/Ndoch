@@ -34,19 +34,18 @@
   function pctMove(newest, oldest){ if(!oldest) return 0; return (newest - oldest) / oldest; }
 
   async function tdTimeSeries(symbol, interval, outputsize){
-    // If PROXY_URL is set, call your Cloudflare Worker (recommended).
-    // Otherwise falls back to direct Twelve Data (NOT recommended on public hosting).
+    // Uses Cloudflare Worker proxy if configured (recommended).
     const proxy = (C.PROXY_URL||'').trim();
     const key = (C.TWELVEDATA_KEY||'').trim();
 
     let url;
-    if(proxy && !proxy.includes('PASTE_')){
+    if(proxy){
       url = new URL(proxy.replace(/\/$/,'') + '/time_series');
       url.searchParams.set('symbol', symbol);
       url.searchParams.set('interval', interval);
       url.searchParams.set('outputsize', String(outputsize));
     } else {
-      if(!key || key.includes('PASTE_')) throw new Error('Missing PROXY_URL (recommended) or Twelve Data key in config.js');
+      if(!key || key.includes('PASTE_')) throw new Error('Missing PROXY_URL or Twelve Data key in config.js');
       url = new URL('https://api.twelvedata.com/time_series');
       url.searchParams.set('symbol', symbol);
       url.searchParams.set('interval', interval);
