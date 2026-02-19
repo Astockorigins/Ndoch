@@ -18,4 +18,10 @@ window.CONFIG = {
   LONDON_MINUTES: 180,
   NY_START: "13:30",
   NY_MINUTES: 180
+,
+  // Alerts + News guard defaults
+  ALERTS_DEFAULT: "off",
+  ALERT_COOLDOWN_SECONDS: 120,
+  NEWS_PRE_MINUTES: 60,
+  NEWS_POST_MINUTES: 60
 };

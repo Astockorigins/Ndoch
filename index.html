@@ -46,7 +46,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.2</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.3</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -154,7 +154,90 @@
       </div>
     </div>
 
-    <div class="card">
+    
+    <div class="card" id="alertsCard">
+      <div class="row">
+        <div class="pill gray">🔔 Alerts</div>
+        <div class="pill" id="alertStatusPill">Status: <b id="alertStatus">Off</b></div>
+      </div>
+      <div class="sub">Get notified when price hits Support/Resistance or when the decision flips to BUY/SELL.</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Alerts</label>
+          <select id="alertsToggle">
+            <option value="off" selected>Off</option>
+            <option value="on">On (while app is open)</option>
+          </select>
+        </div>
+        <div>
+          <label>Cooldown</label>
+          <select id="alertCooldown">
+            <option value="60">60s</option>
+            <option value="120" selected>120s</option>
+            <option value="300">300s</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tiny" style="margin-top:10px">
+        Tip: when you turn alerts on, your browser may ask for permission. Allow it to receive notifications.
+      </div>
+    </div>
+
+    <div class="card" id="newsCard">
+      <div class="row">
+        <div class="pill red">🛑 News Kill‑Switch</div>
+        <div class="pill" id="newsPill">Lock: <b id="newsLockState">OFF</b></div>
+      </div>
+      <div class="sub">Blocks trading around high‑impact USD news (CPI, NFP, FOMC, etc.).</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Block minutes BEFORE event</label>
+          <select id="newsPre">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+        <div>
+          <label>Block minutes AFTER event</label>
+          <select id="newsPost">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="grid2">
+        <div>
+          <label>Next High‑Impact USD Event (Nairobi time)</label>
+          <input id="newsEvent" type="datetime-local" />
+          <div class="tiny">Set the next event time you care about (example: NFP). Update it weekly.</div>
+        </div>
+        <div>
+          <label>Event label</label>
+          <input id="newsLabel" placeholder="e.g. NFP / CPI / FOMC" maxlength="24" />
+          <div class="tiny">Only used for display + alerts.</div>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button id="saveNews" class="primary">Save Event</button>
+        <button id="clearNews" class="danger">Clear Event</button>
+      </div>
+
+      <div class="tiny" style="margin-top:10px" id="newsHint">No event saved.</div>
+    </div>
+
+
+<div class="card">
       <div class="row">
         <div class="pill">Sniper sensitivity</div>
         <div class="pill">Auto refresh: <b id="autoLabel">Off</b></div>
@@ -221,5 +304,7 @@
 
   <script src="config.js"></script>
   <script src="app.js"></script>
+
+<div id="toast" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f172a;border:1px solid #1F2937;color:#E5E7EB;padding:10px 12px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-weight:800;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999"></div>
 </body>
 </html>

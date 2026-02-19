@@ -19,15 +19,55 @@
     autoLabel: $('autoLabel'),
     threshold: $('threshold'), levelDistance: $('levelDistance'), autoRefresh: $('autoRefresh'), levelsLookback: $('levelsLookback'),
     entry: $('entry'), sl: $('sl'), tp: $('tp'), rrHint: $('rrHint'),
-    today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end')
+    today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end'),
+    // v2.3
+    alertsToggle: $('alertsToggle'),
+    alertCooldown: $('alertCooldown'),
+    alertStatus: $('alertStatus'),
+    alertStatusPill: $('alertStatusPill'),
+    toast: $('toast'),
+    newsPre: $('newsPre'),
+    newsPost: $('newsPost'),
+    newsEvent: $('newsEvent'),
+    newsLabel: $('newsLabel'),
+    saveNews: $('saveNews'),
+    clearNews: $('clearNews'),
+    newsHint: $('newsHint'),
+    newsPill: $('newsPill'),
+    newsLockState: $('newsLockState')
   };
 
   let sessionOn = false;
   let lockedDir = null;
   let autoTimer = null;
 
+  // v2.3 alerts/news
+  let alertsOn = false;
+  let alertCooldownSec = Number((C.ALERT_COOLDOWN_SECONDS)||120);
+  let lastAlertAt = 0;
+  let lastDecision = 'NO';
+  let lastLoc = '';
+  let news = { dtLocal: null, label: '', pre: Number(C.NEWS_PRE_MINUTES||60), post: Number(C.NEWS_POST_MINUTES||60) };
+
+
   function pill(el, cls){ el.classList.remove('green','red','blue','amber','gray'); if(cls) el.classList.add(cls); }
   function setConn(ok){ pill(ui.conn, ok ? 'blue' : 'red'); ui.conn.innerHTML = '<strong>' + (ok ? 'ONLINE' : 'OFFLINE') + '</strong>'; }
+  function toast(msg){
+    if(!ui.toast) return;
+    ui.toast.textContent = msg;
+    ui.toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ ui.toast.style.opacity = '0'; }, 1800);
+  }
+
+  async function notify(title, body){
+    try{
+      if(!('Notification' in window)) return;
+      if(Notification.permission !== 'granted') return;
+      new Notification(title, { body });
+      if(navigator.vibrate) navigator.vibrate(60);
+    }catch(e){}
+  }
 
   function fmtPrice(x){ return (x===null || x===undefined || !isFinite(x)) ? '—' : x.toFixed(2); }
   function fmtPct(x){ return (!isFinite(x)) ? '—' : (x*100).toFixed(2) + '%'; }
@@ -210,19 +250,22 @@
 
   function save(){
     try{
-      localStorage.setItem('gold_sniper_v22', JSON.stringify({
+      localStorage.setItem('gold_sniper_v23', JSON.stringify({
         sessionOn, lockedDir,
         threshold: ui.threshold.value,
         levelDistance: ui.levelDistance.value,
         autoRefresh: ui.autoRefresh.value,
         levelsLookback: ui.levelsLookback.value,
         entry: ui.entry.value, sl: ui.sl.value, tp: ui.tp.value
+        ,alertsOn
+        ,alertCooldownSec
+        ,news
       }));
     }catch(e){}
   }
   function restore(){
     try{
-      const s = JSON.parse(localStorage.getItem('gold_sniper_v22') || '{}');
+      const s = JSON.parse(localStorage.getItem('gold_sniper_v23') || '{}');
       if(typeof s.sessionOn === 'boolean') sessionOn = s.sessionOn;
       if(s.lockedDir) lockedDir = s.lockedDir;
       if(s.threshold) ui.threshold.value = s.threshold;
@@ -232,6 +275,9 @@
       if(typeof s.entry === 'string') ui.entry.value = s.entry;
       if(typeof s.sl === 'string') ui.sl.value = s.sl;
       if(typeof s.tp === 'string') ui.tp.value = s.tp;
+      if(typeof s.alertsOn === 'boolean') alertsOn = s.alertsOn;
+      if(typeof s.alertCooldownSec === 'number') alertCooldownSec = s.alertCooldownSec;
+      if(s.news) news = Object.assign(news, s.news);
     }catch(e){}
   }
 
@@ -267,6 +313,66 @@
     ui.levelState.textContent = loc.loc;
     pill(ui.levelPill, loc.cls);
     return loc;
+  }
+
+  
+  function updateAlertsUI(){
+    if(!ui.alertsToggle) return;
+    ui.alertsToggle.value = alertsOn ? 'on' : 'off';
+    ui.alertCooldown.value = String(alertCooldownSec);
+    ui.alertStatus.textContent = alertsOn ? 'On' : 'Off';
+    pill(ui.alertStatusPill, alertsOn ? 'green' : 'amber');
+  }
+
+  function isNewsLockedNow(){
+    if(!news.dtLocal) return false;
+    const dt = new Date(news.dtLocal);
+    if(isNaN(dt.getTime())) return false;
+    const now = new Date();
+    const preMs = (Number(news.pre)||60) * 60000;
+    const postMs = (Number(news.post)||60) * 60000;
+    return now.getTime() >= (dt.getTime() - preMs) && now.getTime() <= (dt.getTime() + postMs);
+  }
+
+  function updateNewsUI(){
+    if(!ui.newsPre) return;
+    ui.newsPre.value = String(news.pre||60);
+    ui.newsPost.value = String(news.post||60);
+    ui.newsLabel.value = news.label || '';
+    ui.newsEvent.value = news.dtLocal || '';
+    const locked = isNewsLockedNow();
+    ui.newsLockState.textContent = locked ? 'ON' : 'OFF';
+    pill(ui.newsPill, locked ? 'red' : 'green');
+    ui.newsHint.textContent = news.dtLocal ? ('Saved: ' + (news.label||'Event') + ' @ ' + news.dtLocal.replace('T',' ') + ' (Nairobi).') : 'No event saved.';
+  }
+
+  function maybeAlert(decision, locText, price){
+    if(!alertsOn) return;
+    const now = Date.now();
+    if(now - lastAlertAt < alertCooldownSec*1000) return;
+
+    const flip = decision !== 'NO' && decision !== lastDecision;
+    const levelHit = (locText && locText !== 'MID-RANGE' && locText !== lastLoc);
+
+    if(flip || levelHit){
+      lastAlertAt = now;
+      const msg = flip
+        ? ('Signal: ' + decision + ' (price ' + price.toFixed(2) + ')')
+        : ('Level hit: ' + locText + ' (price ' + price.toFixed(2) + ')');
+      toast(msg);
+      notify('Gold Sniper', msg);
+    }
+    lastDecision = decision;
+    lastLoc = locText;
+  }
+
+  async function ensureNotificationPermission(){
+    if(!('Notification' in window)) { toast('Notifications not supported'); return; }
+    if(Notification.permission === 'granted') return;
+    if(Notification.permission === 'denied'){ toast('Notifications blocked in browser settings'); return; }
+    const p = await Notification.requestPermission();
+    if(p === 'granted') toast('Alerts enabled ✅');
+    else toast('Alerts not allowed');
   }
 
   async function refresh(){
@@ -340,6 +446,7 @@
       let decision = 'NO';
       let reason = 'Waiting for clean story: USD pressure + gold confirm + at a key level.';
       if(!sessionOn) reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';
+      else if(isNewsLockedNow()) reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';
       else if(lockedDir && proposed && lockedDir !== proposed) reason = 'Direction is locked to ' + lockedDir + ' ONLY. Market bias disagrees. End session or wait.';
       else if(usd.state === 'UNCLEAR') reason = 'USD pressure is unclear (EURUSD not moving enough). Wait.';
       else if(!gold.ok) reason = 'Gold is not confirming USD bias (choppy). Wait for a clean push.';
@@ -385,6 +492,37 @@
   ui.entry.addEventListener('input', ()=>{ computeRR(); save(); });
   ui.sl.addEventListener('input', ()=>{ computeRR(); save(); });
   ui.tp.addEventListener('input', ()=>{ computeRR(); save(); });
+
+  // v2.3 alerts/news listeners
+  if(ui.alertsToggle){
+    ui.alertsToggle.addEventListener('change', async ()=>{
+      alertsOn = ui.alertsToggle.value === 'on';
+      if(alertsOn) await ensureNotificationPermission();
+      updateAlertsUI(); save();
+    });
+    ui.alertCooldown.addEventListener('change', ()=>{
+      alertCooldownSec = parseInt(ui.alertCooldown.value||'120',10);
+      updateAlertsUI(); save();
+    });
+  }
+
+  if(ui.newsPre){
+    ui.newsPre.addEventListener('change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
+    ui.newsPost.addEventListener('change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
+    ui.saveNews.addEventListener('click', ()=>{
+      news.dtLocal = ui.newsEvent.value || null;
+      news.label = (ui.newsLabel.value||'').trim();
+      updateNewsUI(); save(); toast('News event saved');
+    });
+    ui.clearNews.addEventListener('click', ()=>{
+      news.dtLocal = null; news.label='';
+      ui.newsEvent.value=''; ui.newsLabel.value='';
+      updateNewsUI(); save(); toast('News event cleared');
+    });
+  }
+
+  updateAlertsUI();
+  updateNewsUI();
 
   refresh();
 })();
