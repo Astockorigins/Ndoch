@@ -34,7 +34,10 @@
     clearNews: $('clearNews'),
     newsHint: $('newsHint'),
     newsPill: $('newsPill'),
-    newsLockState: $('newsLockState')
+    newsLockState: $('newsLockState'),
+    newsAuto: $('newsAuto'),
+    newsUpcoming: $('newsUpcoming'),
+    loadNews: $('loadNews')
   };
 
   let sessionOn = false;
@@ -48,6 +51,8 @@
   let lastDecision = 'NO';
   let lastLoc = '';
   let news = { dtLocal: null, label: '', pre: Number(C.NEWS_PRE_MINUTES||60), post: Number(C.NEWS_POST_MINUTES||60) };
+  let newsAuto = ((C.NEWS_AUTO_DEFAULT||'on') === 'on');
+  let upcomingUsd = [];
 
 
   function pill(el, cls){ el.classList.remove('green','red','blue','amber','gray'); if(cls) el.classList.add(cls); }
@@ -260,6 +265,7 @@
         ,alertsOn
         ,alertCooldownSec
         ,news
+        ,newsAuto
       }));
     }catch(e){}
   }
@@ -278,6 +284,7 @@
       if(typeof s.alertsOn === 'boolean') alertsOn = s.alertsOn;
       if(typeof s.alertCooldownSec === 'number') alertCooldownSec = s.alertCooldownSec;
       if(s.news) news = Object.assign(news, s.news);
+      if(typeof s.newsAuto === 'boolean') newsAuto = s.newsAuto;
     }catch(e){}
   }
 
@@ -316,7 +323,70 @@
   }
 
   
-  function updateAlertsUI(){
+  
+  function toNairobiLocalInput(dt){
+    // returns YYYY-MM-DDTHH:MM for datetime-local input, using TZ_OFFSET_MINUTES from config
+    const offsetMin = Number(C.TZ_OFFSET_MINUTES||180);
+    const ms = dt.getTime() + (offsetMin*60000) - (dt.getTimezoneOffset()*60000);
+    const d = new Date(ms);
+    const pad = (n)=> String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function fetchUsdHighEvents(){
+    const proxy = (C.PROXY_URL||'').trim().replace(/\/$/,'');
+    if(!proxy) throw new Error('Missing PROXY_URL');
+    const count = Number(C.NEWS_AUTO_COUNT||8);
+    const u = new URL(proxy + '/usd_events');
+    u.searchParams.set('next', String(count));
+    const res = await fetch(u.toString(), { cache:'no-store' });
+    if(!res.ok) throw new Error('Calendar fetch failed');
+    const data = await res.json();
+    if(!data || !Array.isArray(data.events)) throw new Error('Bad calendar data');
+    return data.events;
+  }
+
+  function updateUpcomingDropdown(){
+    if(!ui.newsUpcoming) return;
+    ui.newsUpcoming.innerHTML = '';
+    if(!upcomingUsd.length){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No events found';
+      ui.newsUpcoming.appendChild(opt);
+      return;
+    }
+    upcomingUsd.forEach((ev, i)=>{
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = `${ev.title} • ${ev.nairobi.replace('T',' ')} (KE)`;
+      ui.newsUpcoming.appendChild(opt);
+    });
+  }
+
+  function applyEvent(ev){
+    if(!ev) return;
+    news.dtLocal = ev.nairobi;        // already Nairobi datetime-local format
+    news.label = ev.title.slice(0,24);
+    if(ui.newsEvent) ui.newsEvent.value = news.dtLocal;
+    if(ui.newsLabel) ui.newsLabel.value = news.label;
+    updateNewsUI(); save();
+  }
+
+  async function autoLoadNews(force=false){
+    if(!newsAuto && !force) return;
+    try{
+      const events = await fetchUsdHighEvents();
+      upcomingUsd = events;
+      updateUpcomingDropdown();
+      if(events[0]) applyEvent(events[0]);
+      toast('Loaded USD news ✅');
+    }catch(e){
+      toast('News auto-load failed');
+    }
+  }
+
+function updateAlertsUI(){
     if(!ui.alertsToggle) return;
     ui.alertsToggle.value = alertsOn ? 'on' : 'off';
     ui.alertCooldown.value = String(alertCooldownSec);
@@ -340,6 +410,7 @@
     ui.newsPost.value = String(news.post||60);
     ui.newsLabel.value = news.label || '';
     ui.newsEvent.value = news.dtLocal || '';
+    if(ui.newsAuto) ui.newsAuto.value = newsAuto ? 'on' : 'off';
     const locked = isNewsLockedNow();
     ui.newsLockState.textContent = locked ? 'ON' : 'OFF';
     pill(ui.newsPill, locked ? 'red' : 'green');
@@ -518,6 +589,24 @@
       news.dtLocal = null; news.label='';
       ui.newsEvent.value=''; ui.newsLabel.value='';
       updateNewsUI(); save(); toast('News event cleared');
+    });
+  }
+
+  // auto-load controls
+  if(ui.newsAuto){
+    ui.newsAuto.addEventListener('change', ()=>{
+      newsAuto = (ui.newsAuto.value === 'on');
+      save();
+      if(newsAuto) autoLoadNews(true);
+    });
+  }
+  if(ui.loadNews){
+    ui.loadNews.addEventListener('click', ()=> autoLoadNews(true));
+  }
+  if(ui.newsUpcoming){
+    ui.newsUpcoming.addEventListener('change', ()=>{
+      const i = parseInt(ui.newsUpcoming.value||'0',10);
+      if(upcomingUsd[i]) applyEvent(upcomingUsd[i]);
     });
   }
 

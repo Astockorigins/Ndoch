@@ -46,7 +46,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.3</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.4</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -224,6 +224,26 @@
         <div>
           <label>Event label</label>
           <input id="newsLabel" placeholder="e.g. NFP / CPI / FOMC" maxlength="24" />
+          <div class="sep"></div>
+          <div class="grid2">
+            <div>
+              <label>Auto-load from calendar</label>
+              <select id="newsAuto">
+                <option value="on" selected>On</option>
+                <option value="off">Off (manual)</option>
+              </select>
+              <div class="tiny">Auto-fills next High-impact USD event using the Worker.</div>
+            </div>
+            <div>
+              <label>Upcoming USD High events</label>
+              <select id="newsUpcoming"></select>
+              <div class="tiny">Pick another event to lock around.</div>
+            </div>
+          </div>
+          <div class="btnRow" style="margin-top:12px">
+            <button id="loadNews" class="primary">Auto-load Now</button>
+          </div>
+
           <div class="tiny">Only used for display + alerts.</div>
         </div>
       </div>
