@@ -35,29 +35,27 @@
     input, select{width:100%;padding:10px 12px;border-radius:14px;border:1px solid #1F2937;background:#0f172a;color:#E5E7EB;font-weight:700;box-sizing:border-box}
     label{font-size:11px;opacity:.85}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .tiny{font-size:11px;opacity:.75;line-height:1.35}
     .lock{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .sep{height:1px;background:#1F2937;margin:12px 0}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.4</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.1</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
-        Requires: USD pressure (EURUSD) + gold confirmation + <b>Key Levels</b> from <b>H1+M15 swings</b> plus <b>Yesterday High/Low</b> and <b>London/NY range</b>.
+        USD pressure (EURUSD) + Gold confirmation + Key Levels (H1/M15 swings + Yesterday + London/NY ranges).
       </div>
       <div class="tiny" id="lastUpdate">Last update: —</div>
     </div>
 
-    <div class="card big" id="decisionCard">
+    <div class="card big">
       <p class="decision" id="decisionText">⛔ NO TRADE</p>
-      <div class="reason" id="decisionReason">Waiting for clean story: USD pressure + gold confirm + at a key level.</div>
+      <div class="reason" id="decisionReason">Waiting for clean story: USD + gold confirm + at a key level.</div>
 
       <div class="kpi">
         <div class="k">
@@ -90,13 +88,13 @@
       </div>
 
       <div class="tiny" style="margin-top:10px">
-        Trade only when <b>USD is clear</b> + <b>Gold confirms</b> + <b>Price is at Support/Resistance</b> + <b>Session direction matches</b>.
+        Trade only when USD is clear + Gold confirms + Price is at Support/Resistance + Session direction matches.
       </div>
     </div>
 
     <div class="card" id="levelsCard">
       <div class="row">
-        <div class="pill gray">🧱 Key Levels (all sources)</div>
+        <div class="pill gray">🧱 Key Levels</div>
         <div class="pill">Price: <b id="priceNow">—</b></div>
       </div>
 
@@ -116,14 +114,14 @@
       <div class="sep"></div>
       <div class="row">
         <div class="pill" id="locPill">📍 Location: <b id="locState">MID-RANGE</b></div>
-        <div class="tiny">“MID-RANGE” = wait. “AT RES” = SELL only. “AT SUP” = BUY only.</div>
+        <div class="tiny">MID-RANGE = wait. AT RES = SELL only. AT SUP = BUY only.</div>
       </div>
     </div>
 
     <div class="card" id="sessionLevels">
       <div class="row">
         <div class="pill gray">🗓️ Yesterday + Sessions</div>
-        <div class="pill">TZ: <b id="tzLabel">UTC</b></div>
+        <div class="pill">TZ: <b id="tzLabel">UTC+03:00</b></div>
       </div>
       <div class="grid2" style="margin-top:12px">
         <div class="k">
@@ -150,24 +148,23 @@
         </div>
       </div>
       <div class="tiny" style="margin-top:10px">
-        These are added into Key Levels automatically. If DST shifts NY/London times, adjust in <b>config.js</b>.
+        Session windows use Nairobi time. If DST shifts NY/London times, adjust in config.js.
       </div>
     </div>
 
-    
     <div class="card" id="alertsCard">
       <div class="row">
         <div class="pill gray">🔔 Alerts</div>
         <div class="pill" id="alertStatusPill">Status: <b id="alertStatus">Off</b></div>
       </div>
-      <div class="sub">Get notified when price hits Support/Resistance or when the decision flips to BUY/SELL.</div>
+      <div class="sub">Notifies while the app is open (phones limit true background notifications).</div>
 
       <div class="grid2" style="margin-top:12px">
         <div>
           <label>Alerts</label>
           <select id="alertsToggle">
             <option value="off" selected>Off</option>
-            <option value="on">On (while app is open)</option>
+            <option value="on">On</option>
           </select>
         </div>
         <div>
@@ -179,22 +176,21 @@
           </select>
         </div>
       </div>
-
       <div class="tiny" style="margin-top:10px">
-        Tip: when you turn alerts on, your browser may ask for permission. Allow it to receive notifications.
+        Allow notification permission when asked.
       </div>
     </div>
 
     <div class="card" id="newsCard">
       <div class="row">
-        <div class="pill red">🛑 News Kill‑Switch</div>
+        <div class="pill red">🛑 News Kill-Switch</div>
         <div class="pill" id="newsPill">Lock: <b id="newsLockState">OFF</b></div>
       </div>
-      <div class="sub">Blocks trading around high‑impact USD news (CPI, NFP, FOMC, etc.).</div>
+      <div class="sub">Auto-loads upcoming High-impact USD news from your Worker. You can still set manually.</div>
 
       <div class="grid2" style="margin-top:12px">
         <div>
-          <label>Block minutes BEFORE event</label>
+          <label>Block minutes BEFORE</label>
           <select id="newsPre">
             <option value="30">30</option>
             <option value="60" selected>60</option>
@@ -203,7 +199,7 @@
           </select>
         </div>
         <div>
-          <label>Block minutes AFTER event</label>
+          <label>Block minutes AFTER</label>
           <select id="newsPost">
             <option value="30">30</option>
             <option value="60" selected>60</option>
@@ -217,34 +213,36 @@
 
       <div class="grid2">
         <div>
-          <label>Next High‑Impact USD Event (Nairobi time)</label>
+          <label>Auto-load</label>
+          <select id="newsAuto">
+            <option value="on" selected>On</option>
+            <option value="off">Off (manual)</option>
+          </select>
+          <div class="tiny">Loads next USD High event automatically.</div>
+        </div>
+        <div>
+          <label>Upcoming USD High events</label>
+          <select id="newsUpcoming"></select>
+          <div class="tiny">Pick another event if you want.</div>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button id="loadNews" class="primary">Auto-load Now</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="grid2">
+        <div>
+          <label>Next Event (Nairobi time)</label>
           <input id="newsEvent" type="datetime-local" />
-          <div class="tiny">Set the next event time you care about (example: NFP). Update it weekly.</div>
+          <div class="tiny">If auto-load is off, set manually.</div>
         </div>
         <div>
           <label>Event label</label>
           <input id="newsLabel" placeholder="e.g. NFP / CPI / FOMC" maxlength="24" />
-          <div class="sep"></div>
-          <div class="grid2">
-            <div>
-              <label>Auto-load from calendar</label>
-              <select id="newsAuto">
-                <option value="on" selected>On</option>
-                <option value="off">Off (manual)</option>
-              </select>
-              <div class="tiny">Auto-fills next High-impact USD event using the Worker.</div>
-            </div>
-            <div>
-              <label>Upcoming USD High events</label>
-              <select id="newsUpcoming"></select>
-              <div class="tiny">Pick another event to lock around.</div>
-            </div>
-          </div>
-          <div class="btnRow" style="margin-top:12px">
-            <button id="loadNews" class="primary">Auto-load Now</button>
-          </div>
-
-          <div class="tiny">Only used for display + alerts.</div>
+          <div class="tiny">Used for lock display + alerts.</div>
         </div>
       </div>
 
@@ -256,8 +254,7 @@
       <div class="tiny" style="margin-top:10px" id="newsHint">No event saved.</div>
     </div>
 
-
-<div class="card">
+    <div class="card">
       <div class="row">
         <div class="pill">Sniper sensitivity</div>
         <div class="pill">Auto refresh: <b id="autoLabel">Off</b></div>
@@ -301,15 +298,6 @@
           </select>
         </div>
       </div>
-
-      <div class="sep"></div>
-
-      <div class="grid3">
-        <div><label>Entry (optional)</label><input id="entry" inputmode="decimal" placeholder="e.g. 2034.50" /></div>
-        <div><label>Stop Loss (optional)</label><input id="sl" inputmode="decimal" placeholder="e.g. 2029.50" /></div>
-        <div><label>Take Profit (optional)</label><input id="tp" inputmode="decimal" placeholder="e.g. 2048.50" /></div>
-      </div>
-      <div class="tiny" id="rrHint" style="margin-top:8px">RR: —</div>
     </div>
 
     <div class="card">
@@ -318,13 +306,12 @@
         <div class="pill">Today: <b id="today">—</b></div>
       </div>
       <div class="sub">Not financial advice. It’s a discipline system to stop low-quality trades.</div>
-      <div class="tiny">If you get <b>NO TRADE</b> 3 refreshes in a row, step away for 10 minutes.</div>
     </div>
   </div>
 
+  <div id="toast" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f172a;border:1px solid #1F2937;color:#E5E7EB;padding:10px 12px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-weight:800;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999"></div>
+
   <script src="config.js"></script>
   <script src="app.js"></script>
-
-<div id="toast" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f172a;border:1px solid #1F2937;color:#E5E7EB;padding:10px 12px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-weight:800;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999"></div>
 </body>
 </html>
