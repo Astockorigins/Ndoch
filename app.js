@@ -50,6 +50,10 @@
     openXM: $('openXM'),
     ticketHint: $('ticketHint'),
 
+    themeBtn: $('themeBtn'),
+    installBtn: $('installBtn'),
+    themeColorMeta: $('themeColorMeta'),
+
     // A+B
     softAlerts: $('softAlerts'),
     softCooldown: $('softCooldown'),
@@ -132,6 +136,11 @@ function bindLateUI(){
   let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, updated:null };
   let sentimentRule = (C.SENTIMENT_RULE_DEFAULT || 'info');
   let sentimentTimer = null;
+
+  // v2.6.0 Theme + Install
+  let themeMode = localStorage.getItem('GS_THEME') || 'dark';
+  let deferredInstallPrompt = null;
+
 
 
   // A) Soft alerts (banner + vibration, no Notification permission)
@@ -317,6 +326,54 @@ function ticketText(ticket){
     'RR: 1:' + (ticket.rr || 2),
     'Note: Manual confirm. Adjust for spread.'
   ].join('\n');
+}
+
+function applyTheme(mode){
+  themeMode = (mode === 'light') ? 'light' : 'dark';
+  document.body.classList.toggle('light', themeMode === 'light');
+  localStorage.setItem('GS_THEME', themeMode);
+
+  if(ui.themeBtn){
+    ui.themeBtn.textContent = (themeMode === 'light') ? '🌙 Dark' : '☀️ Light';
+  }
+  // Update theme-color for browser UI
+  const meta = ui.themeColorMeta;
+  if(meta){
+    meta.setAttribute('content', themeMode === 'light' ? '#F8FAFC' : '#0B0F19');
+  }
+}
+
+function setupInstall(){
+  if(!ui.installBtn) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    ui.installBtn.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    ui.installBtn.style.display = 'none';
+    toast('Installed ✅');
+  });
+
+  ui.installBtn.addEventListener('click', async () => {
+    // Android/Chrome
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      return;
+    }
+    // iPhone Safari: no prompt event
+    toast('iPhone: Share → Add to Home Screen');
+  });
+}
+
+function registerSW(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
 }
 
 // -------- logic --------
@@ -853,6 +910,12 @@ setDecision(decision, reason, score);
   updateNewsUI();
   updateABUI();
   setAuto();
+
+  // Theme + Install
+  applyTheme(themeMode);
+  on(ui.themeBtn,'click', ()=> applyTheme(themeMode === 'light' ? 'dark' : 'light'));
+  setupInstall();
+  registerSW();
 
   on(ui.refresh,'click',refresh);
   on(ui.start,'click',startSession);

@@ -53,3 +53,8 @@ Worker change REQUIRED:
 
 v2.5.1 HOTFIX:
 - Fixes Sentiment/Ticket stuck on Loading when the cards load after JS (late DOM binding)
+
+
+v2.6.0:
+- Added Light Mode toggle
+- Added Install button + PWA (manifest + service worker)
