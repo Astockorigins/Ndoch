@@ -1,6 +1,12 @@
 (function(){
+  try{
   const C = window.CONFIG || {};
   const $ = (id)=>document.getElementById(id);
+
+  function on(el, ev, fn){
+    if(!el) return;
+    el.addEventListener(ev, fn);
+  }
 
   const ui = {
     conn: $('conn'), lastUpdate: $('lastUpdate'),
@@ -296,6 +302,7 @@
   }
 
   function updateAlertsUI(){
+    if(!ui.alertsToggle) return;
     ui.alertsToggle.value = alertsOn ? 'on' : 'off';
     ui.alertCooldown.value = String(alertCooldownSec);
     ui.alertStatus.textContent = alertsOn ? 'On' : 'Off';
@@ -313,6 +320,7 @@
   }
 
   function updateNewsUI(){
+    if(!ui.newsPre) return;
     ui.newsPre.value = String(news.pre||60);
     ui.newsPost.value = String(news.post||60);
     ui.newsLabel.value = news.label || '';
@@ -553,56 +561,61 @@
   }
 
   ui.today.textContent = new Date().toLocaleDateString();
+  const jsStatus = $('jsStatus'); if(jsStatus) jsStatus.textContent = 'JS: loaded ✅';
   restore();
   updateSessionUI();
   updateAlertsUI();
   updateNewsUI();
   setAuto();
 
-  ui.refresh.addEventListener('click', refresh);
-  ui.start.addEventListener('click', startSession);
-  ui.end.addEventListener('click', endSession);
+  on(ui.refresh,'click',refresh);
+  on(ui.start,'click',startSession);
+  on(ui.end,'click',endSession);
 
-  ui.threshold.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.levelDistance.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.levelsLookback.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.autoRefresh.addEventListener('change', ()=>{ setAuto(); refresh(); });
+  on(ui.threshold,'change',()=>{ save(); refresh(); });
+  on(ui.levelDistance,'change',()=>{ save(); refresh(); });
+  on(ui.levelsLookback,'change',()=>{ save(); refresh(); });
+  on(ui.autoRefresh,'change',()=>{ setAuto(); refresh(); });
 
-  ui.alertsToggle.addEventListener('change', async ()=>{
+  on(ui.alertsToggle,'change', async ()=>{
     alertsOn = ui.alertsToggle.value === 'on';
     if(alertsOn) await ensureNotificationPermission();
     updateAlertsUI(); save();
   });
-  ui.alertCooldown.addEventListener('change', ()=>{
+  on(ui.alertCooldown,'change', ()=>{
     alertCooldownSec = parseInt(ui.alertCooldown.value||'120',10);
     updateAlertsUI(); save();
   });
 
-  ui.newsPre.addEventListener('change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
-  ui.newsPost.addEventListener('change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
+  on(ui.newsPre,'change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
+  on(ui.newsPost,'change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
 
-  ui.saveNews.addEventListener('click', ()=>{
+  on(ui.saveNews,'click', ()=>{
     news.dtLocal = ui.newsEvent.value || null;
     news.label = (ui.newsLabel.value||'').trim();
     updateNewsUI(); save(); toast('News event saved');
   });
-  ui.clearNews.addEventListener('click', ()=>{
+  on(ui.clearNews,'click', ()=>{
     news.dtLocal = null; news.label='';
     ui.newsEvent.value=''; ui.newsLabel.value='';
     updateNewsUI(); save(); toast('News event cleared');
   });
 
-  ui.newsAuto.addEventListener('change', ()=>{
+  on(ui.newsAuto,'change', ()=>{
     newsAuto = ui.newsAuto.value === 'on';
     updateNewsUI(); save();
     if(newsAuto) autoLoadNews(true);
   });
-  ui.loadNews.addEventListener('click', ()=> autoLoadNews(true));
-  ui.newsUpcoming.addEventListener('change', ()=>{
+  on(ui.loadNews,'click', ()=> autoLoadNews(true));
+  on(ui.newsUpcoming,'change', ()=>{
     const i = parseInt(ui.newsUpcoming.value||'0',10);
     if(upcomingUsd[i]) applyEvent(upcomingUsd[i]);
   });
 
   autoLoadNews(false);
   refresh();
+  }catch(e){
+    console.error(e);
+    const s=$('jsStatus'); if(s) s.textContent='JS error ❌';
+  }
 })();
