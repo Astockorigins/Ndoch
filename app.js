@@ -27,6 +27,15 @@
     today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end'),
     toast: $('toast'),
 
+    // A+B
+    softAlerts: $('softAlerts'),
+    softCooldown: $('softCooldown'),
+    autoLock: $('autoLock'),
+    lockRule: $('lockRule'),
+    lockPill: $('lockPill'),
+    lockModeText: $('lockModeText'),
+    abHint: $('abHint'),
+
     // alerts
     alertsToggle: $('alertsToggle'),
     alertCooldown: $('alertCooldown'),
@@ -67,6 +76,17 @@
   };
   let newsAuto = (C.NEWS_AUTO_DEFAULT || 'on') === 'on';
   let upcomingUsd = [];
+
+  // A) Soft alerts (banner + vibration, no Notification permission)
+  let softAlertsOn = (C.SOFT_ALERTS_DEFAULT || 'on') === 'on';
+  let softCooldownSec = Number(C.SOFT_ALERT_COOLDOWN_SECONDS || 60);
+  let lastSoftAt = 0;
+  let lastSoftDecision = 'NO';
+
+  // B) Session auto-lock mode
+  let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
+  let lockRule = (C.AUTO_LOCK_RULE || 'signal');
+
 
   // -------- ui helpers --------
   function pill(el, cls){
@@ -319,6 +339,22 @@
     return now.getTime() >= (dt.getTime() - preMs) && now.getTime() <= (dt.getTime() + postMs);
   }
 
+  function updateABUI(){
+    if(ui.softAlerts){
+      ui.softAlerts.value = softAlertsOn ? 'on' : 'off';
+      ui.softCooldown.value = String(softCooldownSec);
+    }
+    if(ui.autoLock){
+      ui.autoLock.value = autoLockOn ? 'on' : 'off';
+      ui.lockRule.value = lockRule;
+      if(ui.lockModeText) ui.lockModeText.textContent = autoLockOn ? 'On' : 'Off';
+      pill(ui.lockPill, autoLockOn ? 'green' : 'amber');
+    }
+    if(ui.abHint){
+      ui.abHint.textContent = autoLockOn ? 'Tip: Start Session → wait for first clean signal → direction locks.' : 'Auto-lock is OFF. You can flip direction, but be careful.';
+    }
+  }
+
   function updateNewsUI(){
     if(!ui.newsPre) return;
     ui.newsPre.value = String(news.pre||60);
@@ -371,6 +407,21 @@
     }
   }
 
+  function softAlert(decision, reason){
+    if(!softAlertsOn) return;
+    const now = Date.now();
+    if(now - lastSoftAt < softCooldownSec*1000) return;
+    const actionable = (decision === 'BUY' || decision === 'SELL');
+    const changed = decision !== lastSoftDecision;
+    if(actionable && changed){
+      lastSoftAt = now;
+      lastSoftDecision = decision;
+      toast('🔥 ' + decision + ' • ' + reason);
+      if(navigator.vibrate) navigator.vibrate([50,70,50]);
+    }
+    if(decision === 'NO') lastSoftDecision = 'NO';
+  }
+
   function maybeAlert(decision, locText, price){
     if(!alertsOn) return;
     const now = Date.now();
@@ -400,7 +451,9 @@
         autoRefresh: ui.autoRefresh.value,
         levelsLookback: ui.levelsLookback.value,
         alertsOn, alertCooldownSec,
-        news, newsAuto
+        news, newsAuto,
+        softAlertsOn, softCooldownSec,
+        autoLockOn, lockRule
       }));
     }catch(e){}
   }
@@ -421,6 +474,10 @@
 
       if(s.news) news = Object.assign(news, s.news);
       if(typeof s.newsAuto === 'boolean') newsAuto = s.newsAuto;
+      if(typeof s.softAlertsOn === 'boolean') softAlertsOn = s.softAlertsOn;
+      if(typeof s.softCooldownSec === 'number') softCooldownSec = s.softCooldownSec;
+      if(typeof s.autoLockOn === 'boolean') autoLockOn = s.autoLockOn;
+      if(typeof s.lockRule === 'string') lockRule = s.lockRule;
     }catch(e){}
   }
 
@@ -566,6 +623,7 @@
   updateSessionUI();
   updateAlertsUI();
   updateNewsUI();
+  updateABUI();
   setAuto();
 
   on(ui.refresh,'click',refresh);
@@ -576,6 +634,26 @@
   on(ui.levelDistance,'change',()=>{ save(); refresh(); });
   on(ui.levelsLookback,'change',()=>{ save(); refresh(); });
   on(ui.autoRefresh,'change',()=>{ setAuto(); refresh(); });
+
+  // A+B controls
+  on(ui.softAlerts,'change', ()=>{
+    softAlertsOn = ui.softAlerts.value === 'on';
+    updateABUI(); save();
+  });
+  on(ui.softCooldown,'change', ()=>{
+    softCooldownSec = parseInt(ui.softCooldown.value||'60',10);
+    updateABUI(); save();
+  });
+  on(ui.autoLock,'change', ()=>{
+    autoLockOn = ui.autoLock.value === 'on';
+    if(!autoLockOn){ lockedDir = null; updateSessionUI(); }
+    updateABUI(); save();
+  });
+  on(ui.lockRule,'change', ()=>{
+    lockRule = ui.lockRule.value || 'signal';
+    updateABUI(); save();
+  });
+
 
   on(ui.alertsToggle,'change', async ()=>{
     alertsOn = ui.alertsToggle.value === 'on';

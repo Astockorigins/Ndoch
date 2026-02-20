@@ -44,7 +44,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.3</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.4</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -86,7 +86,53 @@
         <button id="refresh" class="primary">Refresh</button>
         <button id="start" class="primary">Start Session</button>
         <button id="end" class="danger">End Session</button>
+      
+      <div class="sep"></div>
+
+      <div class="card" id="abCard" style="margin:0;background:#0f172a">
+        <div class="row">
+          <div class="pill gray">⚙️ A + B</div>
+          <div class="pill" id="lockPill">Auto-lock: <b id="lockModeText">On</b></div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Soft Alerts</label>
+            <select id="softAlerts">
+              <option value="on" selected>On (banner + vibration)</option>
+              <option value="off">Off</option>
+            </select>
+            <div class="tiny">No notification permission needed. Works on phone.</div>
+          </div>
+          <div>
+            <label>Auto-lock direction</label>
+            <select id="autoLock">
+              <option value="on" selected>On (locks after first valid signal)</option>
+              <option value="off">Off</option>
+            </select>
+            <div class="tiny">Prevents flip-flop after you start session.</div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Alert cooldown</label>
+            <select id="softCooldown">
+              <option value="30">30s</option>
+              <option value="60" selected>60s</option>
+              <option value="120">120s</option>
+            </select>
+          </div>
+          <div>
+            <label>Lock rule</label>
+            <select id="lockRule">
+              <option value="signal" selected>Lock on first BUY/SELL</option>
+              <option value="bias">Lock on first clear USD bias</option>
+            </select>
+          </div>
+        </div>
+        <div class="tiny" style="margin-top:10px" id="abHint">Tip: Start Session → wait for first clean signal → direction locks.</div>
       </div>
+
+</div>
 
       <div class="tiny" style="margin-top:10px">
         Trade only when USD is clear + Gold confirms + Price is at Support/Resistance + Session direction matches.

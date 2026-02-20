@@ -24,4 +24,10 @@ window.CONFIG = {
 
   // Compute gold 60m move from M15 bars (default 4 bars = ~60m)
   GOLD_TREND_FROM_M15_BARS: 4
+,
+  // v2.4.4 A+B defaults
+  SOFT_ALERTS_DEFAULT: "on",
+  SOFT_ALERT_COOLDOWN_SECONDS: 60,
+  AUTO_LOCK_DEFAULT: "on",
+  AUTO_LOCK_RULE: "signal" // "signal" or "bias"
 };
