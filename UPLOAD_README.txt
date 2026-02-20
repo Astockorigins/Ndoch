@@ -58,3 +58,9 @@ v2.5.1 HOTFIX:
 v2.6.0:
 - Added Light Mode toggle
 - Added Install button + PWA (manifest + service worker)
+
+
+v2.6.1 HOTFIX:
+- Prevents falling back to older cached UI (network-first navigation)
+- Forces SW update + one-time reload when new SW takes control
+- Manifest start_url includes v=261

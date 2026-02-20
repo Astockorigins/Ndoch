@@ -1,4 +1,4 @@
-const CACHE = 'gold-sniper-v2-6-0';
+const CACHE = 'gold-sniper-v2-6-1';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,18 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
+
+  // Network-first for navigation (prevents old UI from reappearing)
+  if(req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')){
+    e.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c=>c.put('./index.html', copy)).catch(()=>{});
+        return res;
+      }).catch(()=> caches.match('./index.html'))
+    );
+    return;
+  }
 
   // Network-first for API calls
   if (url.pathname.includes('/time_series') || url.pathname.includes('/usd_events') || url.pathname.includes('/sentiment')) {
