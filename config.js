@@ -30,4 +30,8 @@ window.CONFIG = {
   SOFT_ALERT_COOLDOWN_SECONDS: 60,
   AUTO_LOCK_DEFAULT: "on",
   AUTO_LOCK_RULE: "signal" // "signal" or "bias"
+,
+  // v2.4.5 Smart Alerts
+  SOFT_ALERT_MIN_SCORE: 4,
+  SOFT_LEVEL_ALERTS_DEFAULT: "off"
 };

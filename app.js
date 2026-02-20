@@ -35,6 +35,8 @@
     lockPill: $('lockPill'),
     lockModeText: $('lockModeText'),
     abHint: $('abHint'),
+    minScore: $('minScore'),
+    levelAlerts: $('levelAlerts'),
 
     // alerts
     alertsToggle: $('alertsToggle'),
@@ -82,6 +84,9 @@
   let softCooldownSec = Number(C.SOFT_ALERT_COOLDOWN_SECONDS || 60);
   let lastSoftAt = 0;
   let lastSoftDecision = 'NO';
+  let softMinScore = Number(C.SOFT_ALERT_MIN_SCORE || 4);
+  let levelAlertsOn = (C.SOFT_LEVEL_ALERTS_DEFAULT || 'off') === 'on';
+  let lastLevelLoc = '';
 
   // B) Session auto-lock mode
   let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
@@ -350,6 +355,10 @@
       if(ui.lockModeText) ui.lockModeText.textContent = autoLockOn ? 'On' : 'Off';
       pill(ui.lockPill, autoLockOn ? 'green' : 'amber');
     }
+    if(ui.minScore){
+      ui.minScore.value = String(softMinScore);
+      ui.levelAlerts.value = levelAlertsOn ? 'on' : 'off';
+    }
     if(ui.abHint){
       ui.abHint.textContent = autoLockOn ? 'Tip: Start Session → wait for first clean signal → direction locks.' : 'Auto-lock is OFF. You can flip direction, but be careful.';
     }
@@ -407,22 +416,37 @@
     }
   }
 
-  function softAlert(decision, reason){
+  function softAlert(decision, reason, score, locText, newsLocked){
     if(!softAlertsOn) return;
+    if(!sessionOn) return;
+    if(newsLocked) return;
+    if(score < softMinScore) return;
+
     const now = Date.now();
     if(now - lastSoftAt < softCooldownSec*1000) return;
+
     const actionable = (decision === 'BUY' || decision === 'SELL');
     const changed = decision !== lastSoftDecision;
+
     if(actionable && changed){
       lastSoftAt = now;
       lastSoftDecision = decision;
       toast('🔥 ' + decision + ' • ' + reason);
       if(navigator.vibrate) navigator.vibrate([50,70,50]);
+      return;
     }
+
+    if(levelAlertsOn && locText && locText !== 'MID-RANGE' && locText !== lastLevelLoc){
+      lastLevelLoc = locText;
+      lastSoftAt = now;
+      toast('🧱 LEVEL: ' + locText + ' • wait for setup');
+      if(navigator.vibrate) navigator.vibrate([40,60,40]);
+    }
+
     if(decision === 'NO') lastSoftDecision = 'NO';
   }
 
-  function maybeAlert(decision, locText, price){
+  function maybeAlert(decision, locText, price){(decision, locText, price){
     if(!alertsOn) return;
     const now = Date.now();
     if(now - lastAlertAt < alertCooldownSec*1000) return;
@@ -453,7 +477,8 @@
         alertsOn, alertCooldownSec,
         news, newsAuto,
         softAlertsOn, softCooldownSec,
-        autoLockOn, lockRule
+        autoLockOn, lockRule,
+        softMinScore, levelAlertsOn
       }));
     }catch(e){}
   }
@@ -478,6 +503,8 @@
       if(typeof s.softCooldownSec === 'number') softCooldownSec = s.softCooldownSec;
       if(typeof s.autoLockOn === 'boolean') autoLockOn = s.autoLockOn;
       if(typeof s.lockRule === 'string') lockRule = s.lockRule;
+      if(typeof s.softMinScore === 'number') softMinScore = s.softMinScore;
+      if(typeof s.levelAlertsOn === 'boolean') levelAlertsOn = s.levelAlertsOn;
     }catch(e){}
   }
 
@@ -653,6 +680,16 @@
     lockRule = ui.lockRule.value || 'signal';
     updateABUI(); save();
   });
+
+  on(ui.minScore,'change', ()=>{
+    softMinScore = parseInt(ui.minScore.value||'4',10);
+    updateABUI(); save();
+  });
+  on(ui.levelAlerts,'change', ()=>{
+    levelAlertsOn = ui.levelAlerts.value === 'on';
+    updateABUI(); save();
+  });
+
 
 
   on(ui.alertsToggle,'change', async ()=>{

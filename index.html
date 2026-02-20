@@ -44,7 +44,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.4</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.5</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -129,6 +129,26 @@
             </select>
           </div>
         </div>
+        
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Alert filter</label>
+            <select id="minScore">
+              <option value="4" selected>Only 4/4 signals (sniper)</option>
+              <option value="3">3/4 or higher (more alerts)</option>
+            </select>
+            <div class="tiny">Stops alerts when signal is not clean.</div>
+          </div>
+          <div>
+            <label>Level alerts</label>
+            <select id="levelAlerts">
+              <option value="off" selected>Off</option>
+              <option value="on">On (alert when hits Support/Resistance)</option>
+            </select>
+            <div class="tiny">Vibrates when price reaches a key level.</div>
+          </div>
+        </div>
+
         <div class="tiny" style="margin-top:10px" id="abHint">Tip: Start Session → wait for first clean signal → direction locks.</div>
       </div>
 
