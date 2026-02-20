@@ -37,4 +37,11 @@ window.CONFIG = {
 ,
   // v2.4.6 Smart Auto-lock
   AUTO_LOCK_MIN_SCORE: 4
+,
+  // v2.5.0 Sentiment + Ticket
+  SENTIMENT_SYMBOL: "XAUUSD",
+  SENTIMENT_REFRESH_SECONDS: 120,
+  SENTIMENT_RULE_DEFAULT: "info", // "info" or "contrarian70"
+  TICKET_RR: 2.0,
+  TICKET_SL_BUFFER_PCT: 0.0008 // 0.08% buffer beyond level
 };

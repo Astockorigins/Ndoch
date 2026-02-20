@@ -27,6 +27,29 @@
     today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end'),
     toast: $('toast'),
 
+    // Sentiment + Ticket
+    sentimentPill: $('sentimentPill'),
+    sentimentState: $('sentimentState'),
+    sentLong: $('sentLong'),
+    sentShort: $('sentShort'),
+    sentLongLots: $('sentLongLots'),
+    sentShortLots: $('sentShortLots'),
+    sentRule: $('sentRule'),
+    sentRulePill: $('sentRulePill'),
+    sentRuleText: $('sentRuleText'),
+    sentHint: $('sentHint'),
+
+    ticketPill: $('ticketPill'),
+    ticketState: $('ticketState'),
+    tDir: $('tDir'),
+    tEntry: $('tEntry'),
+    tSL: $('tSL'),
+    tTP: $('tTP'),
+    tRisk: $('tRisk'),
+    copyTicket: $('copyTicket'),
+    openXM: $('openXM'),
+    ticketHint: $('ticketHint'),
+
     // A+B
     softAlerts: $('softAlerts'),
     softCooldown: $('softCooldown'),
@@ -80,6 +103,12 @@
   };
   let newsAuto = (C.NEWS_AUTO_DEFAULT || 'on') === 'on';
   let upcomingUsd = [];
+
+  // v2.5.0 Sentiment (Myfxbook via Worker)
+  let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, updated:null };
+  let sentimentRule = (C.SENTIMENT_RULE_DEFAULT || 'info');
+  let sentimentTimer = null;
+
 
   // A) Soft alerts (banner + vibration, no Notification permission)
   let softAlertsOn = (C.SOFT_ALERTS_DEFAULT || 'on') === 'on';
@@ -158,7 +187,113 @@
     return data.events;
   }
 
-  // -------- logic --------
+  async function fetchSentiment(){
+  try{
+    const sym = (C.SENTIMENT_SYMBOL || 'XAUUSD');
+    const data = await api('/sentiment', { symbol: sym });
+    if(!data || data.status !== 'ok') throw new Error('bad sentiment');
+    sentiment = {
+      longPct: Number(data.longPct),
+      shortPct: Number(data.shortPct),
+      longLots: Number(data.longLots),
+      shortLots: Number(data.shortLots),
+      updated: data.updated || null
+    };
+    updateSentimentUI(true);
+  }catch(e){
+    updateSentimentUI(false);
+  }
+}
+
+function updateSentimentUI(ok){
+  if(!ui.sentimentState) return;
+  ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
+  pill(ui.sentimentPill, ok ? 'blue' : 'red');
+
+  if(ok){
+    ui.sentLong.textContent = isFinite(sentiment.longPct) ? (sentiment.longPct.toFixed(0) + '%') : '—';
+    ui.sentShort.textContent = isFinite(sentiment.shortPct) ? (sentiment.shortPct.toFixed(0) + '%') : '—';
+    ui.sentLongLots.textContent = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
+    ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
+
+    if(ui.sentRule){
+      ui.sentRule.value = sentimentRule;
+      ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
+      pill(ui.sentRulePill, sentimentRule === 'contrarian70' ? 'amber' : 'gray');
+    }
+  }else{
+    ui.sentLong.textContent = '—';
+    ui.sentShort.textContent = '—';
+    ui.sentLongLots.textContent = 'Lots: —';
+    ui.sentShortLots.textContent = 'Lots: —';
+  }
+}
+
+function sentimentAllows(direction){
+  if(sentimentRule !== 'contrarian70') return true;
+  if(!isFinite(sentiment.longPct) || !isFinite(sentiment.shortPct)) return true;
+  if(sentiment.longPct >= 70) return direction === 'SELL';
+  if(sentiment.shortPct >= 70) return direction === 'BUY';
+  return true;
+}
+
+function buildTicket(decision, entry, sup, res){
+  const rr = Number(C.TICKET_RR || 2.0);
+  const bufPct = Number(C.TICKET_SL_BUFFER_PCT || 0.0008);
+  const buf = entry * bufPct;
+
+  let sl = null, tp = null, risk = null;
+  if(decision === 'BUY'){
+    sl = (isFinite(sup) ? (sup - buf) : (entry - entry*0.002));
+    risk = entry - sl;
+    tp = entry + rr * risk;
+  } else if(decision === 'SELL'){
+    sl = (isFinite(res) ? (res + buf) : (entry + entry*0.002));
+    risk = sl - entry;
+    tp = entry - rr * risk;
+  } else {
+    return null;
+  }
+  return { decision, entry, sl, tp, rr, risk };
+}
+
+function setTicketUI(ticket){
+  if(!ui.ticketState) return;
+  if(!ticket){
+    ui.ticketState.textContent = '—';
+    pill(ui.ticketPill, 'gray');
+    ui.tDir.textContent = '—';
+    ui.tEntry.textContent = '—';
+    ui.tSL.textContent = '—';
+    ui.tTP.textContent = '—';
+    ui.tRisk.textContent = 'Risk: —';
+    return;
+  }
+  ui.ticketState.textContent = 'READY';
+  pill(ui.ticketPill, 'green');
+  ui.tDir.textContent = ticket.decision;
+  ui.tEntry.textContent = ticket.entry.toFixed(2);
+  ui.tSL.textContent = ticket.sl.toFixed(2);
+  ui.tTP.textContent = ticket.tp.toFixed(2);
+  ui.tRisk.textContent = 'Risk: ' + ticket.risk.toFixed(2) + ' (RR 1:' + (ticket.rr||2) + ')';
+}
+
+function ticketText(ticket){
+  if(!ticket) return '';
+  const sym = (C.GOLD_SYMBOL || 'XAU/USD').replace('/','');
+  return [
+    'GOLD SNIPER TRADE TICKET',
+    'Symbol: ' + sym,
+    'Direction: ' + ticket.decision,
+    'Entry: ' + ticket.entry.toFixed(2),
+    'SL: ' + ticket.sl.toFixed(2),
+    'TP: ' + ticket.tp.toFixed(2),
+    'RR: 1:' + (ticket.rr || 2),
+    'Note: Manual confirm. Adjust for spread.'
+  ].join('\n');
+}
+
+// -------- logic --------
   function classifyUSD(eurPct, th){
     if(eurPct <= -th) return { state:'STRONG', dir:'SELL' };
     if(eurPct >=  th) return { state:'WEAK', dir:'BUY' };
@@ -507,6 +642,7 @@
 
       if(s.news) news = Object.assign(news, s.news);
       if(typeof s.newsAuto === 'boolean') newsAuto = s.newsAuto;
+      if(typeof s.sentimentRule === 'string') sentimentRule = s.sentimentRule;
       if(typeof s.softAlertsOn === 'boolean') softAlertsOn = s.softAlertsOn;
       if(typeof s.softCooldownSec === 'number') softCooldownSec = s.softCooldownSec;
       if(typeof s.autoLockOn === 'boolean') autoLockOn = s.autoLockOn;
@@ -640,7 +776,23 @@
         }
       }
 
-      setDecision(decision, reason, score);
+      // Sentiment filter (optional)
+if(decision === 'BUY' || decision === 'SELL'){
+  if(!sentimentAllows(decision)){
+    decision = 'NO';
+    reason = 'Sentiment filter blocked this direction (crowded side).';
+  }
+}
+
+// Build trade ticket only when signal is clean (score 4/4) and actionable
+let ticket = null;
+if((decision === 'BUY' || decision === 'SELL') && score >= 4){
+  ticket = buildTicket(decision, price, near.sup, near.res);
+}
+window.__LAST_TICKET = ticket;
+setTicketUI(ticket);
+
+setDecision(decision, reason, score);
       maybeAlert(decision, loc.loc, price);
 
       ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();
@@ -756,6 +908,35 @@
   });
 
   autoLoadNews(false);
+
+  // Sentiment
+  fetchSentiment();
+  const ssec = parseInt(C.SENTIMENT_REFRESH_SECONDS || 120, 10);
+  if(ssec){
+    if(sentimentTimer) clearInterval(sentimentTimer);
+    sentimentTimer = setInterval(fetchSentiment, ssec*1000);
+  }
+
+  on(ui.sentRule,'change', ()=>{
+    sentimentRule = ui.sentRule.value || 'info';
+    updateSentimentUI(true);
+    save();
+    refresh();
+  });
+
+  on(ui.copyTicket,'click', async ()=>{
+    try{
+      const t = window.__LAST_TICKET || null;
+      if(!t){ toast('No ticket yet'); return; }
+      await navigator.clipboard.writeText(ticketText(t));
+      toast('Ticket copied ✅');
+    }catch(e){ toast('Copy failed'); }
+  });
+
+  on(ui.openXM,'click', ()=>{
+    window.open('https://www.xm.com/', '_blank');
+  });
+
   refresh();
   }catch(e){
     console.error(e);

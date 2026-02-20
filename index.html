@@ -44,7 +44,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.7</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.5.0</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -398,3 +398,67 @@
   <script src="app.js"></script>
 </body>
 </html>
+<div class="card">
+  <div class="row">
+    <div class="pill gray">👥 Sentiment (Myfxbook)</div>
+    <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">XAUUSD Long</div>
+      <div class="value" id="sentLong">—</div>
+      <div class="tiny" id="sentLongLots">Lots: —</div>
+    </div>
+    <div>
+      <div class="label">XAUUSD Short</div>
+      <div class="value" id="sentShort">—</div>
+      <div class="tiny" id="sentShortLots">Lots: —</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <div class="pill amber" id="sentRulePill">Rule: <b id="sentRuleText">Info only</b></div>
+    <select id="sentRule">
+      <option value="info" selected>Info only</option>
+      <option value="contrarian70">Contrarian filter (≥70% crowded)</option>
+    </select>
+  </div>
+  <div class="tiny" id="sentHint" style="margin-top:10px">Tip: Sentiment is NOT a timing tool. Use it as a filter.</div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div class="pill gray">🧾 Trade Ticket (manual confirm)</div>
+    <div class="pill" id="ticketPill">Ready: <b id="ticketState">—</b></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">Direction</div>
+      <div class="value" id="tDir">—</div>
+      <div class="tiny">Generated only on clean signals.</div>
+    </div>
+    <div>
+      <div class="label">Entry (now)</div>
+      <div class="value" id="tEntry">—</div>
+      <div class="tiny">Use your broker spread/confirmation.</div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">Stop Loss</div>
+      <div class="value" id="tSL">—</div>
+      <div class="tiny" id="tRisk">Risk: —</div>
+    </div>
+    <div>
+      <div class="label">Take Profit</div>
+      <div class="value" id="tTP">—</div>
+      <div class="tiny">Default RR: 1:2</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <button class="btn" id="copyTicket">Copy ticket</button>
+    <button class="btn secondary" id="openXM">Open XM / MT5</button>
+  </div>
+  <div class="tiny" id="ticketHint" style="margin-top:10px">Copy → paste into notes or use it while placing the trade manually.</div>
+</div>
