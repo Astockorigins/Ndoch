@@ -84,6 +84,30 @@
     loadNews: $('loadNews'),
   };
 
+function bindLateUI(){
+  // If cards are injected below scripts (or slow DOM), bind missing nodes here.
+  ui.sentimentPill ||= $('sentimentPill');
+  ui.sentimentState ||= $('sentimentState');
+  ui.sentLong ||= $('sentLong');
+  ui.sentShort ||= $('sentShort');
+  ui.sentLongLots ||= $('sentLongLots');
+  ui.sentShortLots ||= $('sentShortLots');
+  ui.sentRule ||= $('sentRule');
+  ui.sentRulePill ||= $('sentRulePill');
+  ui.sentRuleText ||= $('sentRuleText');
+
+  ui.ticketPill ||= $('ticketPill');
+  ui.ticketState ||= $('ticketState');
+  ui.tDir ||= $('tDir');
+  ui.tEntry ||= $('tEntry');
+  ui.tSL ||= $('tSL');
+  ui.tTP ||= $('tTP');
+  ui.tRisk ||= $('tRisk');
+  ui.copyTicket ||= $('copyTicket');
+  ui.openXM ||= $('openXM');
+}
+
+
   // -------- state --------
   let sessionOn = false;
   let lockedDir = null;
@@ -206,6 +230,7 @@
 }
 
 function updateSentimentUI(ok){
+    bindLateUI();
   if(!ui.sentimentState) return;
   ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
   pill(ui.sentimentPill, ok ? 'blue' : 'red');
@@ -258,6 +283,7 @@ function buildTicket(decision, entry, sup, res){
 }
 
 function setTicketUI(ticket){
+    bindLateUI();
   if(!ui.ticketState) return;
   if(!ticket){
     ui.ticketState.textContent = '—';
@@ -908,6 +934,7 @@ setDecision(decision, reason, score);
   });
 
   autoLoadNews(false);
+  bindLateUI();
 
   // Sentiment
   fetchSentiment();
