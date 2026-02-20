@@ -52,6 +52,7 @@
 
     themeBtn: $('themeBtn'),
     installBtn: $('installBtn'),
+    resetBtn: $('resetBtn'),
     themeColorMeta: $('themeColorMeta'),
 
     // A+B
@@ -381,6 +382,27 @@ function registerSW(){
         reloaded = true;
         location.reload();
       });
+  }
+}
+
+async function nukeCachesAndSW(){
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){ try{ await r.unregister(); }catch(e){} }
+    }
+    if('caches' in window){
+      const keys = await caches.keys();
+      for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
+    }
+    try{
+      localStorage.removeItem('GS_STATE');
+      localStorage.removeItem('GS_THEME');
+    }catch(e){}
+    toast('Cache cleared ✅ reloading…');
+    setTimeout(()=> location.replace(location.pathname + '?v=262'), 600);
+  }catch(e){
+    toast('Fix failed');
   }
 }
 
@@ -924,6 +946,16 @@ setDecision(decision, reason, score);
   on(ui.themeBtn,'click', ()=> applyTheme(themeMode === 'light' ? 'dark' : 'light'));
   setupInstall();
   registerSW();
+  on(ui.resetBtn,'click', ()=> nukeCachesAndSW());
+  // If you ever get stuck on an older version, open ?reset=1
+  try{
+    const u = new URL(location.href);
+    if(u.searchParams.get('reset') === '1'){
+      nukeCachesAndSW();
+      return;
+    }
+  }catch(e){}
+
 
   on(ui.refresh,'click',refresh);
   on(ui.start,'click',startSession);

@@ -64,3 +64,8 @@ v2.6.1 HOTFIX:
 - Prevents falling back to older cached UI (network-first navigation)
 - Forces SW update + one-time reload when new SW takes control
 - Manifest start_url includes v=261
+
+
+v2.6.2:
+- Added 🧹 Fix button + ?reset=1 that unregisters old service workers + clears cache
+- Use when the site keeps falling back to an old version
