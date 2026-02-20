@@ -44,7 +44,7 @@
   <div class="wrap">
     <div class="card">
       <div class="row">
-        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.5</span></h1>
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.4.6</span></h1>
         <div id="conn" class="pill blue"><strong>ONLINE</strong></div>
       </div>
       <div class="sub">
@@ -149,7 +149,23 @@
           </div>
         </div>
 
-        <div class="tiny" style="margin-top:10px" id="abHint">Tip: Start Session → wait for first clean signal → direction locks.</div>
+        <div class="grid2" style="margin-top:12px">
+  <div>
+    <label>Auto-lock quality</label>
+    <select id="lockMinScore">
+      <option value="4" selected>Lock only on 4/4 (best)</option>
+      <option value="3">Lock on 3/4 or higher</option>
+    </select>
+    <div class="tiny">Stops locking on weak signals.</div>
+  </div>
+  <div>
+    <label>Lock status</label>
+    <div class="pill" style="margin-top:6px">Locked: <b id="lockStateText">No</b></div>
+    <div class="tiny">Resets when you end session.</div>
+  </div>
+</div>
+
+<div class="tiny" style="margin-top:10px" id="abHint">Tip: Start Session → wait for first clean signal → direction locks.</div>
       </div>
 
 </div>

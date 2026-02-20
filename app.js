@@ -37,6 +37,8 @@
     abHint: $('abHint'),
     minScore: $('minScore'),
     levelAlerts: $('levelAlerts'),
+    lockMinScore: $('lockMinScore'),
+    lockStateText: $('lockStateText'),
 
     // alerts
     alertsToggle: $('alertsToggle'),
@@ -91,6 +93,7 @@
   // B) Session auto-lock mode
   let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
   let lockRule = (C.AUTO_LOCK_RULE || 'signal');
+  let lockMinScore = Number(C.AUTO_LOCK_MIN_SCORE || 4);
 
 
   // -------- ui helpers --------
@@ -359,6 +362,10 @@
       ui.minScore.value = String(softMinScore);
       ui.levelAlerts.value = levelAlertsOn ? 'on' : 'off';
     }
+    if(ui.lockMinScore){
+      ui.lockMinScore.value = String(lockMinScore);
+      if(ui.lockStateText) ui.lockStateText.textContent = lockedDir ? ('Yes ('+lockedDir+')') : 'No';
+    }
     if(ui.abHint){
       ui.abHint.textContent = autoLockOn ? 'Tip: Start Session → wait for first clean signal → direction locks.' : 'Auto-lock is OFF. You can flip direction, but be careful.';
     }
@@ -478,7 +485,8 @@
         news, newsAuto,
         softAlertsOn, softCooldownSec,
         autoLockOn, lockRule,
-        softMinScore, levelAlertsOn
+        softMinScore, levelAlertsOn,
+        lockMinScore
       }));
     }catch(e){}
   }
@@ -505,6 +513,7 @@
       if(typeof s.lockRule === 'string') lockRule = s.lockRule;
       if(typeof s.softMinScore === 'number') softMinScore = s.softMinScore;
       if(typeof s.levelAlertsOn === 'boolean') levelAlertsOn = s.levelAlertsOn;
+      if(typeof s.lockMinScore === 'number') lockMinScore = s.lockMinScore;
     }catch(e){}
   }
 
@@ -587,9 +596,14 @@
       const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);
       if(sessionOk) score++;
 
-      if(sessionOn && !lockedDir && proposed){
-        const lockReady = (usd.state !== 'UNCLEAR') && (gold.ok || atLevelOk);
-        if(lockReady){ lockedDir = proposed; updateSessionUI(); }
+      // B) Auto-lock (smart): respect toggle + quality threshold
+      if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){
+        if(score >= lockMinScore && usd.state !== 'UNCLEAR'){
+          lockedDir = proposed;
+          updateSessionUI();
+          updateABUI();
+          toast('🔒 Direction locked: ' + lockedDir);
+        }
       }
 
       let decision = 'NO';
@@ -615,6 +629,15 @@
         reason = (proposed === 'BUY')
           ? 'USD weak + gold bullish + at SUPPORT. Look for BUY setups only.'
           : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.';
+      }
+
+      if(sessionOn && autoLockOn && !lockedDir && lockRule === 'signal'){
+        if(score >= lockMinScore && (decision === 'BUY' || decision === 'SELL')){
+          lockedDir = decision;
+          updateSessionUI();
+          updateABUI();
+          toast('🔒 Direction locked: ' + lockedDir);
+        }
       }
 
       setDecision(decision, reason, score);
@@ -678,6 +701,11 @@
   });
   on(ui.lockRule,'change', ()=>{
     lockRule = ui.lockRule.value || 'signal';
+    updateABUI(); save();
+  });
+
+  on(ui.lockMinScore,'change', ()=>{
+    lockMinScore = parseInt(ui.lockMinScore.value||'4',10);
     updateABUI(); save();
   });
 

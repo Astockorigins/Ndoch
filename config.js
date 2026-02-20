@@ -34,4 +34,7 @@ window.CONFIG = {
   // v2.4.5 Smart Alerts
   SOFT_ALERT_MIN_SCORE: 4,
   SOFT_LEVEL_ALERTS_DEFAULT: "off"
+,
+  // v2.4.6 Smart Auto-lock
+  AUTO_LOCK_MIN_SCORE: 4
 };
