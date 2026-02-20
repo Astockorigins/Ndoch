@@ -438,16 +438,22 @@
     const lvlPct = parseFloat(ui.levelDistance.value || '0.0015');
     const h1Bars = parseInt(ui.levelsLookback.value || '72', 10);
     const m15Bars = 96;
-    const m15LongBars = 220;
+    const goldM15LongBars = 220;
 
     try{
-      const [eurTrend, goldTrend] = await Promise.all([
+      const [eurTrend, goldM15Long] = await Promise.all([
         tdTimeSeries(C.USD_PROXY_SYMBOL || 'EUR/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
+        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', 220),
       ]);
 
       const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
-      const goldPct = pctMove(goldTrend[0].close, goldTrend[goldTrend.length-1].close);
+
+      // LITE: compute gold 60m move from last N M15 bars (default 4)
+      const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
+      const goldNewest = goldM15Long[0].close;
+      const goldOldest = goldM15Long[n].close;
+      const goldPct = pctMove(goldNewest, goldOldest);
+
       const usd = classifyUSD(eurPct, th);
       const gold = classifyGold(goldPct, usd.dir, th);
 
@@ -456,30 +462,24 @@
       ui.goldState.textContent = gold.state;
       ui.goldDetail.textContent = 'XAUUSD (60m): ' + fmtPct(goldPct);
 
-      const price = goldTrend[0].close;
+      const price = goldNewest;
 
-      const [h1, m15, m15Long] = await Promise.all([
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_H1_INTERVAL || '1h', h1Bars),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', m15Bars),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', m15LongBars),
-      ]);
-
-      const swH1 = findSwings(h1, 2);
-      const swM15 = findSwings(m15, 3);
-
-      const highs = swH1.swingsHigh.concat(swM15.swingsHigh);
-      const lows  = swH1.swingsLow.concat(swM15.swingsLow);
+      // LITE: Key levels from M15 swings + Yesterday + Sessions (no extra API calls)
+      const swM15 = findSwings(goldM15Long.slice(0, 160), 3);
+      const highs = swM15.swingsHigh;
+      const lows  = swM15.swingsLow;
 
       const clusterBand = 0.0010;
       let resistances = clusterLevels(highs, price, clusterBand);
       let supports    = clusterLevels(lows,  price, clusterBand);
 
-      const y = computeYesterdayHighLow(m15Long);
-      const dNow = parseISOish(m15Long[0].datetime);
+      const y = computeYesterdayHighLow(goldM15Long);
+
+      const dNow = parseISOish(goldM15Long[0].datetime);
       const todayKey = dNow ? dayKeyTZ(dNow) : null;
 
-      const lon = todayKey ? computeSessionRange(m15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};
-      const ny  = todayKey ? computeSessionRange(m15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};
+      const lon = todayKey ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};
+      const ny  = todayKey ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};
 
       setSessionLevelsUI(price, y.yHigh, y.yLow, lon, ny);
 

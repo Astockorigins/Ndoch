@@ -18,4 +18,10 @@ window.CONFIG = {
   NEWS_POST_MINUTES: 60,
   NEWS_AUTO_DEFAULT: "on",
   NEWS_AUTO_COUNT: 8
+,
+  // v2.4.3: LITE mode reduces API calls to avoid rate limits.
+  LITE_MODE: true,
+
+  // Compute gold 60m move from M15 bars (default 4 bars = ~60m)
+  GOLD_TREND_FROM_M15_BARS: 4
 };
