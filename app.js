@@ -453,7 +453,7 @@
     if(decision === 'NO') lastSoftDecision = 'NO';
   }
 
-  function maybeAlert(decision, locText, price){(decision, locText, price){
+  function maybeAlert(decision, locText, price){
     if(!alertsOn) return;
     const now = Date.now();
     if(now - lastAlertAt < alertCooldownSec*1000) return;
