@@ -1,6 +1,12 @@
 (function(){
+  try{
   const C = window.CONFIG || {};
   const $ = (id)=>document.getElementById(id);
+
+  function on(el, ev, fn){
+    if(!el) return;
+    el.addEventListener(ev, fn);
+  }
 
   const ui = {
     conn: $('conn'), lastUpdate: $('lastUpdate'),
@@ -18,14 +24,57 @@
     lonRange: $('lonRange'), nyRange: $('nyRange'), lonDist: $('lonDist'), nyDist: $('nyDist'),
     autoLabel: $('autoLabel'),
     threshold: $('threshold'), levelDistance: $('levelDistance'), autoRefresh: $('autoRefresh'), levelsLookback: $('levelsLookback'),
-    entry: $('entry'), sl: $('sl'), tp: $('tp'), rrHint: $('rrHint'),
     today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end'),
-    // v2.3
+    toast: $('toast'),
+
+    // Sentiment + Ticket
+    sentimentPill: $('sentimentPill'),
+    sentimentState: $('sentimentState'),
+    sentLong: $('sentLong'),
+    sentShort: $('sentShort'),
+    sentLongLots: $('sentLongLots'),
+    sentShortLots: $('sentShortLots'),
+    sentRule: $('sentRule'),
+    sentRulePill: $('sentRulePill'),
+    sentRuleText: $('sentRuleText'),
+    sentHint: $('sentHint'),
+
+    ticketPill: $('ticketPill'),
+    ticketState: $('ticketState'),
+    tDir: $('tDir'),
+    tEntry: $('tEntry'),
+    tSL: $('tSL'),
+    tTP: $('tTP'),
+    tRisk: $('tRisk'),
+    copyTicket: $('copyTicket'),
+    openXM: $('openXM'),
+    ticketHint: $('ticketHint'),
+
+    themeBtn: $('themeBtn'),
+    installBtn: $('installBtn'),
+    resetBtn: $('resetBtn'),
+    themeColorMeta: $('themeColorMeta'),
+
+    // A+B
+    softAlerts: $('softAlerts'),
+    softCooldown: $('softCooldown'),
+    autoLock: $('autoLock'),
+    lockRule: $('lockRule'),
+    lockPill: $('lockPill'),
+    lockModeText: $('lockModeText'),
+    abHint: $('abHint'),
+    minScore: $('minScore'),
+    levelAlerts: $('levelAlerts'),
+    lockMinScore: $('lockMinScore'),
+    lockStateText: $('lockStateText'),
+
+    // alerts
     alertsToggle: $('alertsToggle'),
     alertCooldown: $('alertCooldown'),
     alertStatus: $('alertStatus'),
     alertStatusPill: $('alertStatusPill'),
-    toast: $('toast'),
+
+    // news
     newsPre: $('newsPre'),
     newsPost: $('newsPost'),
     newsEvent: $('newsEvent'),
@@ -34,24 +83,92 @@
     clearNews: $('clearNews'),
     newsHint: $('newsHint'),
     newsPill: $('newsPill'),
-    newsLockState: $('newsLockState')
+    newsLockState: $('newsLockState'),
+    newsAuto: $('newsAuto'),
+    newsUpcoming: $('newsUpcoming'),
+    loadNews: $('loadNews'),
   };
 
+function bindLateUI(){
+  // If cards are injected below scripts (or slow DOM), bind missing nodes here.
+  ui.sentimentPill ||= $('sentimentPill');
+  ui.sentimentState ||= $('sentimentState');
+  ui.sentLong ||= $('sentLong');
+  ui.sentShort ||= $('sentShort');
+  ui.sentLongLots ||= $('sentLongLots');
+  ui.sentShortLots ||= $('sentShortLots');
+  ui.sentRule ||= $('sentRule');
+  ui.sentRulePill ||= $('sentRulePill');
+  ui.sentRuleText ||= $('sentRuleText');
+
+  ui.ticketPill ||= $('ticketPill');
+  ui.ticketState ||= $('ticketState');
+  ui.tDir ||= $('tDir');
+  ui.tEntry ||= $('tEntry');
+  ui.tSL ||= $('tSL');
+  ui.tTP ||= $('tTP');
+  ui.tRisk ||= $('tRisk');
+  ui.copyTicket ||= $('copyTicket');
+  ui.openXM ||= $('openXM');
+}
+
+
+  // -------- state --------
   let sessionOn = false;
   let lockedDir = null;
   let autoTimer = null;
 
-  // v2.3 alerts/news
-  let alertsOn = false;
-  let alertCooldownSec = Number((C.ALERT_COOLDOWN_SECONDS)||120);
+  let alertsOn = (C.ALERTS_DEFAULT || 'off') === 'on';
+  let alertCooldownSec = Number(C.ALERT_COOLDOWN_SECONDS || 120);
   let lastAlertAt = 0;
   let lastDecision = 'NO';
   let lastLoc = '';
-  let news = { dtLocal: null, label: '', pre: Number(C.NEWS_PRE_MINUTES||60), post: Number(C.NEWS_POST_MINUTES||60) };
+
+  let news = {
+    dtLocal: null,
+    label: '',
+    pre: Number(C.NEWS_PRE_MINUTES || 60),
+    post: Number(C.NEWS_POST_MINUTES || 60),
+  };
+  let newsAuto = (C.NEWS_AUTO_DEFAULT || 'on') === 'on';
+  let upcomingUsd = [];
+
+  // v2.5.0 Sentiment (Myfxbook via Worker)
+  let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, updated:null };
+  let sentimentRule = (C.SENTIMENT_RULE_DEFAULT || 'info');
+  let sentimentTimer = null;
+
+  // v2.6.0 Theme + Install
+  let themeMode = localStorage.getItem('GS_THEME') || 'dark';
+  let deferredInstallPrompt = null;
 
 
-  function pill(el, cls){ el.classList.remove('green','red','blue','amber','gray'); if(cls) el.classList.add(cls); }
-  function setConn(ok){ pill(ui.conn, ok ? 'blue' : 'red'); ui.conn.innerHTML = '<strong>' + (ok ? 'ONLINE' : 'OFFLINE') + '</strong>'; }
+
+  // A) Soft alerts (banner + vibration, no Notification permission)
+  let softAlertsOn = (C.SOFT_ALERTS_DEFAULT || 'on') === 'on';
+  let softCooldownSec = Number(C.SOFT_ALERT_COOLDOWN_SECONDS || 60);
+  let lastSoftAt = 0;
+  let lastSoftDecision = 'NO';
+  let softMinScore = Number(C.SOFT_ALERT_MIN_SCORE || 4);
+  let levelAlertsOn = (C.SOFT_LEVEL_ALERTS_DEFAULT || 'off') === 'on';
+  let lastLevelLoc = '';
+
+  // B) Session auto-lock mode
+  let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
+  let lockRule = (C.AUTO_LOCK_RULE || 'signal');
+  let lockMinScore = Number(C.AUTO_LOCK_MIN_SCORE || 4);
+
+
+  // -------- ui helpers --------
+  function pill(el, cls){
+    if(!el) return;
+    el.classList.remove('green','red','blue','amber','gray');
+    if(cls) el.classList.add(cls);
+  }
+  function setConn(ok){
+    pill(ui.conn, ok ? 'blue' : 'red');
+    if(ui.conn) ui.conn.innerHTML = '<strong>' + (ok ? 'ONLINE' : 'OFFLINE') + '</strong>';
+  }
   function toast(msg){
     if(!ui.toast) return;
     ui.toast.textContent = msg;
@@ -59,7 +176,6 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(()=>{ ui.toast.style.opacity = '0'; }, 1800);
   }
-
   async function notify(title, body){
     try{
       if(!('Notification' in window)) return;
@@ -68,38 +184,229 @@
       if(navigator.vibrate) navigator.vibrate(60);
     }catch(e){}
   }
+  async function ensureNotificationPermission(){
+    if(!('Notification' in window)) { toast('Notifications not supported'); return; }
+    if(Notification.permission === 'granted') return;
+    if(Notification.permission === 'denied'){ toast('Notifications blocked in browser settings'); return; }
+    const p = await Notification.requestPermission();
+    if(p === 'granted') toast('Alerts enabled ✅');
+    else toast('Alerts not allowed');
+  }
 
   function fmtPrice(x){ return (x===null || x===undefined || !isFinite(x)) ? '—' : x.toFixed(2); }
   function fmtPct(x){ return (!isFinite(x)) ? '—' : (x*100).toFixed(2) + '%'; }
   function pctMove(newest, oldest){ if(!oldest) return 0; return (newest - oldest) / oldest; }
 
-  async function tdTimeSeries(symbol, interval, outputsize){
-    // Uses Cloudflare Worker proxy if configured (recommended).
-    const proxy = (C.PROXY_URL||'').trim();
-    const key = (C.TWELVEDATA_KEY||'').trim();
-
-    let url;
-    if(proxy){
-      url = new URL(proxy.replace(/\/$/,'') + '/time_series');
-      url.searchParams.set('symbol', symbol);
-      url.searchParams.set('interval', interval);
-      url.searchParams.set('outputsize', String(outputsize));
-    } else {
-      if(!key || key.includes('PASTE_')) throw new Error('Missing PROXY_URL or Twelve Data key in config.js');
-      url = new URL('https://api.twelvedata.com/time_series');
-      url.searchParams.set('symbol', symbol);
-      url.searchParams.set('interval', interval);
-      url.searchParams.set('outputsize', String(outputsize));
-      url.searchParams.set('apikey', key);
-    }
-
-    const res = await fetch(url.toString(), { cache: 'no-store' });
-    const data = await res.json();
-    if(data.status !== 'ok') throw new Error(data.message || 'Twelve Data error');
-    return data.values.map(v => ({ datetime:v.datetime, open:+v.open, high:+v.high, low:+v.low, close:+v.close })); // newest-first
+  // -------- data fetch --------
+  async function api(path, params){
+    const base = (C.PROXY_URL || '').trim().replace(/\/$/,'');
+    if(!base) throw new Error('Missing PROXY_URL in config.js');
+    const u = new URL(base + path);
+    Object.entries(params || {}).forEach(([k,v])=> u.searchParams.set(k, String(v)));
+    const res = await fetch(u.toString(), { cache:'no-store' });
+    if(!res.ok) throw new Error('API error: ' + res.status);
+    return await res.json();
   }
 
+  async function tdTimeSeries(symbol, interval, outputsize){
+    const data = await api('/time_series', { symbol, interval, outputsize });
+    if(data.status !== 'ok') throw new Error(data.message || 'Twelve Data error');
+    return data.values.map(v => ({ datetime:v.datetime, open:+v.open, high:+v.high, low:+v.low, close:+v.close }));
+  }
 
+  async function fetchUsdHighEvents(){
+    const count = Number(C.NEWS_AUTO_COUNT || 8);
+    const data = await api('/usd_events', { next: count });
+    if(!data || !Array.isArray(data.events)) return [];
+    return data.events;
+  }
+
+  async function fetchSentiment(){
+  try{
+    const sym = (C.SENTIMENT_SYMBOL || 'XAUUSD');
+    const data = await api('/sentiment', { symbol: sym });
+    if(!data || data.status !== 'ok') throw new Error('bad sentiment');
+    sentiment = {
+      longPct: Number(data.longPct),
+      shortPct: Number(data.shortPct),
+      longLots: Number(data.longLots),
+      shortLots: Number(data.shortLots),
+      updated: data.updated || null
+    };
+    updateSentimentUI(true);
+  }catch(e){
+    updateSentimentUI(false);
+  }
+}
+
+function updateSentimentUI(ok){
+    bindLateUI();
+  if(!ui.sentimentState) return;
+  ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
+  pill(ui.sentimentPill, ok ? 'blue' : 'red');
+
+  if(ok){
+    ui.sentLong.textContent = isFinite(sentiment.longPct) ? (sentiment.longPct.toFixed(0) + '%') : '—';
+    ui.sentShort.textContent = isFinite(sentiment.shortPct) ? (sentiment.shortPct.toFixed(0) + '%') : '—';
+    ui.sentLongLots.textContent = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
+    ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
+
+    if(ui.sentRule){
+      ui.sentRule.value = sentimentRule;
+      ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
+      pill(ui.sentRulePill, sentimentRule === 'contrarian70' ? 'amber' : 'gray');
+    }
+  }else{
+    ui.sentLong.textContent = '—';
+    ui.sentShort.textContent = '—';
+    ui.sentLongLots.textContent = 'Lots: —';
+    ui.sentShortLots.textContent = 'Lots: —';
+  }
+}
+
+function sentimentAllows(direction){
+  if(sentimentRule !== 'contrarian70') return true;
+  if(!isFinite(sentiment.longPct) || !isFinite(sentiment.shortPct)) return true;
+  if(sentiment.longPct >= 70) return direction === 'SELL';
+  if(sentiment.shortPct >= 70) return direction === 'BUY';
+  return true;
+}
+
+function buildTicket(decision, entry, sup, res){
+  const rr = Number(C.TICKET_RR || 2.0);
+  const bufPct = Number(C.TICKET_SL_BUFFER_PCT || 0.0008);
+  const buf = entry * bufPct;
+
+  let sl = null, tp = null, risk = null;
+  if(decision === 'BUY'){
+    sl = (isFinite(sup) ? (sup - buf) : (entry - entry*0.002));
+    risk = entry - sl;
+    tp = entry + rr * risk;
+  } else if(decision === 'SELL'){
+    sl = (isFinite(res) ? (res + buf) : (entry + entry*0.002));
+    risk = sl - entry;
+    tp = entry - rr * risk;
+  } else {
+    return null;
+  }
+  return { decision, entry, sl, tp, rr, risk };
+}
+
+function setTicketUI(ticket){
+    bindLateUI();
+  if(!ui.ticketState) return;
+  if(!ticket){
+    ui.ticketState.textContent = '—';
+    pill(ui.ticketPill, 'gray');
+    ui.tDir.textContent = '—';
+    ui.tEntry.textContent = '—';
+    ui.tSL.textContent = '—';
+    ui.tTP.textContent = '—';
+    ui.tRisk.textContent = 'Risk: —';
+    return;
+  }
+  ui.ticketState.textContent = 'READY';
+  pill(ui.ticketPill, 'green');
+  ui.tDir.textContent = ticket.decision;
+  ui.tEntry.textContent = ticket.entry.toFixed(2);
+  ui.tSL.textContent = ticket.sl.toFixed(2);
+  ui.tTP.textContent = ticket.tp.toFixed(2);
+  ui.tRisk.textContent = 'Risk: ' + ticket.risk.toFixed(2) + ' (RR 1:' + (ticket.rr||2) + ')';
+}
+
+function ticketText(ticket){
+  if(!ticket) return '';
+  const sym = (C.GOLD_SYMBOL || 'XAU/USD').replace('/','');
+  return [
+    'GOLD SNIPER TRADE TICKET',
+    'Symbol: ' + sym,
+    'Direction: ' + ticket.decision,
+    'Entry: ' + ticket.entry.toFixed(2),
+    'SL: ' + ticket.sl.toFixed(2),
+    'TP: ' + ticket.tp.toFixed(2),
+    'RR: 1:' + (ticket.rr || 2),
+    'Note: Manual confirm. Adjust for spread.'
+  ].join('\n');
+}
+
+function applyTheme(mode){
+  themeMode = (mode === 'light') ? 'light' : 'dark';
+  document.body.classList.toggle('light', themeMode === 'light');
+  localStorage.setItem('GS_THEME', themeMode);
+
+  if(ui.themeBtn){
+    ui.themeBtn.textContent = (themeMode === 'light') ? '🌙 Dark' : '☀️ Light';
+  }
+  // Update theme-color for browser UI
+  const meta = ui.themeColorMeta;
+  if(meta){
+    meta.setAttribute('content', themeMode === 'light' ? '#F8FAFC' : '#0B0F19');
+  }
+}
+
+function setupInstall(){
+  if(!ui.installBtn) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    ui.installBtn.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    ui.installBtn.style.display = 'none';
+    toast('Installed ✅');
+  });
+
+  ui.installBtn.addEventListener('click', async () => {
+    // Android/Chrome
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      return;
+    }
+    // iPhone Safari: no prompt event
+    toast('iPhone: Share → Add to Home Screen');
+  });
+}
+
+function registerSW(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+        reg.update().catch(()=>{});
+      }).catch(()=>{});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+        if(reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
+  }
+}
+
+async function nukeCachesAndSW(){
+  try{
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){ try{ await r.unregister(); }catch(e){} }
+    }
+    if('caches' in window){
+      const keys = await caches.keys();
+      for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
+    }
+    try{
+      localStorage.removeItem('GS_STATE');
+      localStorage.removeItem('GS_THEME');
+    }catch(e){}
+    toast('Cache cleared ✅ reloading…');
+    setTimeout(()=> location.replace(location.pathname + '?v=262'), 600);
+  }catch(e){
+    toast('Fix failed');
+  }
+}
+
+// -------- logic --------
   function classifyUSD(eurPct, th){
     if(eurPct <= -th) return { state:'STRONG', dir:'SELL' };
     if(eurPct >=  th) return { state:'WEAK', dir:'BUY' };
@@ -113,7 +420,7 @@
   }
 
   function findSwings(bars, leftRight){
-    const arr = bars.slice().reverse();
+    const arr = bars.slice().reverse(); // oldest-first
     const swingsHigh = [], swingsLow = [];
     for(let i=leftRight; i<arr.length-leftRight; i++){
       const h = arr[i].high, l = arr[i].low;
@@ -167,21 +474,17 @@
     return { loc:'MID-RANGE', okDir:null, cls:'gray' };
   }
 
-  function computeRR(){
-    const e = parseFloat(ui.entry.value), sl = parseFloat(ui.sl.value), tp = parseFloat(ui.tp.value);
-    if([e,sl,tp].some(x=>Number.isNaN(x))) { ui.rrHint.textContent = 'RR: —'; return; }
-    const risk = Math.abs(e - sl), reward = Math.abs(tp - e);
-    if(risk === 0){ ui.rrHint.textContent = 'RR: —'; return; }
-    ui.rrHint.textContent = 'RR: ' + (reward / risk).toFixed(2) + ' (target ≥ 2.00)';
-  }
-
   function parseISOish(s){
     const t = (s||'').replace(' ', 'T');
-    const d = new Date(t + (t.endsWith('Z') ? '' : 'Z'));
+    const d = new Date(t + 'Z');
     return isNaN(d.getTime()) ? null : d;
   }
-  function toTZ(d){ const off = Number(C.TZ_OFFSET_MINUTES||0); return new Date(d.getTime() + off*60000); }
-  function timeToMinutes(hhmm){ const [h,m]=hhmm.split(':').map(n=>parseInt(n,10)); return h*60+m; }
+
+  function toTZ(d){
+    const off = Number(C.TZ_OFFSET_MINUTES||180);
+    return new Date(d.getTime() + off*60000);
+  }
+
   function dayKeyTZ(d){
     const z = toTZ(d);
     const y = z.getUTCFullYear();
@@ -189,6 +492,8 @@
     const da = String(z.getUTCDate()).padStart(2,'0');
     return `${y}-${m}-${da}`;
   }
+
+  function timeToMinutes(hhmm){ const [h,m]=hhmm.split(':').map(n=>parseInt(n,10)); return h*60+m; }
 
   function computeYesterdayHighLow(bars){
     const map = new Map();
@@ -225,13 +530,11 @@
     return found ? { hi, lo } : { hi:null, lo:null };
   }
 
-  function setSessionUI(price, yHigh, yLow, lon, ny){
-    const yHighDist = (yHigh===null) ? Infinity : (Math.abs(yHigh - price)/price);
-    const yLowDist  = (yLow===null) ? Infinity : (Math.abs(price - yLow)/price);
+  function setSessionLevelsUI(price, yHigh, yLow, lon, ny){
     ui.yHigh.textContent = fmtPrice(yHigh);
     ui.yLow.textContent = fmtPrice(yLow);
-    ui.yHighDist.textContent = 'Distance: ' + fmtPct(yHighDist);
-    ui.yLowDist.textContent  = 'Distance: ' + fmtPct(yLowDist);
+    ui.yHighDist.textContent = 'Distance: ' + fmtPct(yHigh===null?Infinity:Math.abs(yHigh-price)/price);
+    ui.yLowDist.textContent  = 'Distance: ' + fmtPct(yLow===null?Infinity:Math.abs(price-yLow)/price);
 
     ui.lonRange.textContent = (lon.hi && lon.lo) ? (fmtPrice(lon.hi) + ' / ' + fmtPrice(lon.lo)) : '—';
     ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.lo)) : '—';
@@ -240,45 +543,6 @@
     const nyMin  = Math.min((ny.hi===null?Infinity:Math.abs(ny.hi-price)/price),(ny.lo===null?Infinity:Math.abs(price-ny.lo)/price));
     ui.lonDist.textContent = 'Distance: ' + fmtPct(lonMin);
     ui.nyDist.textContent  = 'Distance: ' + fmtPct(nyMin);
-
-    const off = Number(C.TZ_OFFSET_MINUTES||0);
-    const sign = off>=0 ? '+' : '-';
-    const hh = String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
-    const mm = String(Math.abs(off)%60).padStart(2,'0');
-    ui.tzLabel.textContent = off===0 ? 'UTC' : ('UTC' + sign + hh + ':' + mm);
-  }
-
-  function save(){
-    try{
-      localStorage.setItem('gold_sniper_v23', JSON.stringify({
-        sessionOn, lockedDir,
-        threshold: ui.threshold.value,
-        levelDistance: ui.levelDistance.value,
-        autoRefresh: ui.autoRefresh.value,
-        levelsLookback: ui.levelsLookback.value,
-        entry: ui.entry.value, sl: ui.sl.value, tp: ui.tp.value
-        ,alertsOn
-        ,alertCooldownSec
-        ,news
-      }));
-    }catch(e){}
-  }
-  function restore(){
-    try{
-      const s = JSON.parse(localStorage.getItem('gold_sniper_v23') || '{}');
-      if(typeof s.sessionOn === 'boolean') sessionOn = s.sessionOn;
-      if(s.lockedDir) lockedDir = s.lockedDir;
-      if(s.threshold) ui.threshold.value = s.threshold;
-      if(s.levelDistance) ui.levelDistance.value = s.levelDistance;
-      if(s.autoRefresh) ui.autoRefresh.value = s.autoRefresh;
-      if(s.levelsLookback) ui.levelsLookback.value = s.levelsLookback;
-      if(typeof s.entry === 'string') ui.entry.value = s.entry;
-      if(typeof s.sl === 'string') ui.sl.value = s.sl;
-      if(typeof s.tp === 'string') ui.tp.value = s.tp;
-      if(typeof s.alertsOn === 'boolean') alertsOn = s.alertsOn;
-      if(typeof s.alertCooldownSec === 'number') alertCooldownSec = s.alertCooldownSec;
-      if(s.news) news = Object.assign(news, s.news);
-    }catch(e){}
   }
 
   function updateSessionUI(){
@@ -303,10 +567,8 @@
     ui.priceNow.textContent = fmtPrice(price);
     ui.supLevel.textContent = fmtPrice(sup);
     ui.resLevel.textContent = fmtPrice(res);
-    const supDistPct = (sup===null) ? Infinity : (Math.abs(price - sup)/price);
-    const resDistPct = (res===null) ? Infinity : (Math.abs(res - price)/price);
-    ui.supDist.textContent = 'Distance: ' + fmtPct(supDistPct);
-    ui.resDist.textContent = 'Distance: ' + fmtPct(resDistPct);
+    ui.supDist.textContent = 'Distance: ' + fmtPct(sup===null?Infinity:Math.abs(price-sup)/price);
+    ui.resDist.textContent = 'Distance: ' + fmtPct(res===null?Infinity:Math.abs(res-price)/price);
     const loc = locationStatus(price, sup, res, lvlPct);
     ui.locState.textContent = loc.loc;
     pill(ui.locPill, loc.cls);
@@ -315,7 +577,6 @@
     return loc;
   }
 
-  
   function updateAlertsUI(){
     if(!ui.alertsToggle) return;
     ui.alertsToggle.value = alertsOn ? 'on' : 'off';
@@ -334,16 +595,110 @@
     return now.getTime() >= (dt.getTime() - preMs) && now.getTime() <= (dt.getTime() + postMs);
   }
 
+  function updateABUI(){
+    if(ui.softAlerts){
+      ui.softAlerts.value = softAlertsOn ? 'on' : 'off';
+      ui.softCooldown.value = String(softCooldownSec);
+    }
+    if(ui.autoLock){
+      ui.autoLock.value = autoLockOn ? 'on' : 'off';
+      ui.lockRule.value = lockRule;
+      if(ui.lockModeText) ui.lockModeText.textContent = autoLockOn ? 'On' : 'Off';
+      pill(ui.lockPill, autoLockOn ? 'green' : 'amber');
+    }
+    if(ui.minScore){
+      ui.minScore.value = String(softMinScore);
+      ui.levelAlerts.value = levelAlertsOn ? 'on' : 'off';
+    }
+    if(ui.lockMinScore){
+      ui.lockMinScore.value = String(lockMinScore);
+      if(ui.lockStateText) ui.lockStateText.textContent = lockedDir ? ('Yes ('+lockedDir+')') : 'No';
+    }
+    if(ui.abHint){
+      ui.abHint.textContent = autoLockOn ? 'Tip: Start Session → wait for first clean signal → direction locks.' : 'Auto-lock is OFF. You can flip direction, but be careful.';
+    }
+  }
+
   function updateNewsUI(){
     if(!ui.newsPre) return;
     ui.newsPre.value = String(news.pre||60);
     ui.newsPost.value = String(news.post||60);
     ui.newsLabel.value = news.label || '';
     ui.newsEvent.value = news.dtLocal || '';
+    ui.newsAuto.value = newsAuto ? 'on' : 'off';
+
     const locked = isNewsLockedNow();
     ui.newsLockState.textContent = locked ? 'ON' : 'OFF';
     pill(ui.newsPill, locked ? 'red' : 'green');
-    ui.newsHint.textContent = news.dtLocal ? ('Saved: ' + (news.label||'Event') + ' @ ' + news.dtLocal.replace('T',' ') + ' (Nairobi).') : 'No event saved.';
+    ui.newsHint.textContent = news.dtLocal ? ('Saved: ' + (news.label||'Event') + ' @ ' + news.dtLocal.replace('T',' ') + ' (KE).') : 'No event saved.';
+  }
+
+  function updateUpcomingDropdown(){
+    ui.newsUpcoming.innerHTML = '';
+    if(!upcomingUsd.length){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No events found';
+      ui.newsUpcoming.appendChild(opt);
+      return;
+    }
+    upcomingUsd.forEach((ev, i)=>{
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = `${ev.title} • ${String(ev.nairobi||'').replace('T',' ')} (KE)`;
+      ui.newsUpcoming.appendChild(opt);
+    });
+  }
+
+  function applyEvent(ev){
+    if(!ev) return;
+    news.dtLocal = ev.nairobi || null;
+    news.label = String(ev.title || 'USD High').slice(0,24);
+    updateNewsUI();
+    save();
+  }
+
+  async function autoLoadNews(force=false){
+    if(!newsAuto && !force) return;
+    try{
+      const events = await fetchUsdHighEvents();
+      upcomingUsd = events;
+      updateUpcomingDropdown();
+      if(events[0]) applyEvent(events[0]);
+      toast('Loaded USD news ✅');
+    }catch(e){
+      toast('Auto-load failed (calendar)');
+    }
+  }
+
+  function softAlert(decision, reason, score, locText, newsLocked){
+    if(!softAlertsOn) return;
+    if(!sessionOn) return;
+    if(newsLocked) return;
+    if(score < softMinScore) return;
+
+    const now = Date.now();
+    if(now - lastSoftAt < softCooldownSec*1000) return;
+
+    const actionable = (decision === 'BUY' || decision === 'SELL');
+    const changed = decision !== lastSoftDecision;
+
+    if(actionable && changed){
+      lastSoftAt = now;
+      lastSoftDecision = decision;
+      toast('🔥 ' + decision + ' • ' + reason);
+      if(navigator.vibrate) navigator.vibrate([50,70,50]);
+      return;
+    }
+
+    if(levelAlertsOn && locText && locText !== 'MID-RANGE' && locText !== lastLevelLoc){
+      lastLevelLoc = locText;
+      lastSoftAt = now;
+      toast('🧱 LEVEL: ' + locText + ' • wait for setup');
+      if(navigator.vibrate) navigator.vibrate([40,60,40]);
+    }
+
+    if(decision === 'NO') lastSoftDecision = 'NO';
   }
 
   function maybeAlert(decision, locText, price){
@@ -366,13 +721,57 @@
     lastLoc = locText;
   }
 
-  async function ensureNotificationPermission(){
-    if(!('Notification' in window)) { toast('Notifications not supported'); return; }
-    if(Notification.permission === 'granted') return;
-    if(Notification.permission === 'denied'){ toast('Notifications blocked in browser settings'); return; }
-    const p = await Notification.requestPermission();
-    if(p === 'granted') toast('Alerts enabled ✅');
-    else toast('Alerts not allowed');
+  function save(){
+    try{
+      localStorage.setItem('gold_sniper_v241', JSON.stringify({
+        sessionOn, lockedDir,
+        threshold: ui.threshold.value,
+        levelDistance: ui.levelDistance.value,
+        autoRefresh: ui.autoRefresh.value,
+        levelsLookback: ui.levelsLookback.value,
+        alertsOn, alertCooldownSec,
+        news, newsAuto,
+        softAlertsOn, softCooldownSec,
+        autoLockOn, lockRule,
+        softMinScore, levelAlertsOn,
+        lockMinScore
+      }));
+    }catch(e){}
+  }
+
+  function restore(){
+    try{
+      const s = JSON.parse(localStorage.getItem('gold_sniper_v241') || '{}');
+      if(typeof s.sessionOn === 'boolean') sessionOn = s.sessionOn;
+      if(s.lockedDir) lockedDir = s.lockedDir;
+
+      if(s.threshold) ui.threshold.value = s.threshold;
+      if(s.levelDistance) ui.levelDistance.value = s.levelDistance;
+      if(s.autoRefresh) ui.autoRefresh.value = s.autoRefresh;
+      if(s.levelsLookback) ui.levelsLookback.value = s.levelsLookback;
+
+      if(typeof s.alertsOn === 'boolean') alertsOn = s.alertsOn;
+      if(typeof s.alertCooldownSec === 'number') alertCooldownSec = s.alertCooldownSec;
+
+      if(s.news) news = Object.assign(news, s.news);
+      if(typeof s.newsAuto === 'boolean') newsAuto = s.newsAuto;
+      if(typeof s.sentimentRule === 'string') sentimentRule = s.sentimentRule;
+      if(typeof s.softAlertsOn === 'boolean') softAlertsOn = s.softAlertsOn;
+      if(typeof s.softCooldownSec === 'number') softCooldownSec = s.softCooldownSec;
+      if(typeof s.autoLockOn === 'boolean') autoLockOn = s.autoLockOn;
+      if(typeof s.lockRule === 'string') lockRule = s.lockRule;
+      if(typeof s.softMinScore === 'number') softMinScore = s.softMinScore;
+      if(typeof s.levelAlertsOn === 'boolean') levelAlertsOn = s.levelAlertsOn;
+      if(typeof s.lockMinScore === 'number') lockMinScore = s.lockMinScore;
+    }catch(e){}
+  }
+
+  function setAuto(){
+    const sec = parseInt(ui.autoRefresh.value || '0', 10);
+    if(autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    ui.autoLabel.textContent = sec ? (sec + 's') : 'Off';
+    if(sec) autoTimer = setInterval(refresh, sec*1000);
+    save();
   }
 
   async function refresh(){
@@ -381,15 +780,22 @@
     const lvlPct = parseFloat(ui.levelDistance.value || '0.0015');
     const h1Bars = parseInt(ui.levelsLookback.value || '72', 10);
     const m15Bars = 96;
-    const yBars = 200;
+    const goldM15LongBars = 220;
+
     try{
-      const [eurTrend, goldTrend] = await Promise.all([
+      const [eurTrend, goldM15Long] = await Promise.all([
         tdTimeSeries(C.USD_PROXY_SYMBOL || 'EUR/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
+        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', 220),
       ]);
 
       const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
-      const goldPct = pctMove(goldTrend[0].close, goldTrend[goldTrend.length-1].close);
+
+      // LITE: compute gold 60m move from last N M15 bars (default 4)
+      const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
+      const goldNewest = goldM15Long[0].close;
+      const goldOldest = goldM15Long[n].close;
+      const goldPct = pctMove(goldNewest, goldOldest);
+
       const usd = classifyUSD(eurPct, th);
       const gold = classifyGold(goldPct, usd.dir, th);
 
@@ -398,33 +804,34 @@
       ui.goldState.textContent = gold.state;
       ui.goldDetail.textContent = 'XAUUSD (60m): ' + fmtPct(goldPct);
 
-      const price = goldTrend[0].close;
+      const price = goldNewest;
 
-      const [h1, m15, m15Long] = await Promise.all([
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_H1_INTERVAL || '1h', h1Bars),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', m15Bars),
-        tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', yBars),
-      ]);
-
-      const swH1 = findSwings(h1, 2);
-      const swM15 = findSwings(m15, 3);
-      const highs = swH1.swingsHigh.concat(swM15.swingsHigh);
-      const lows  = swH1.swingsLow.concat(swM15.swingsLow);
+      // LITE: Key levels from M15 swings + Yesterday + Sessions (no extra API calls)
+      const swM15 = findSwings(goldM15Long.slice(0, 160), 3);
+      const highs = swM15.swingsHigh;
+      const lows  = swM15.swingsLow;
 
       const clusterBand = 0.0010;
       let resistances = clusterLevels(highs, price, clusterBand);
       let supports    = clusterLevels(lows,  price, clusterBand);
 
-      const y = computeYesterdayHighLow(m15Long);
-      const dNow = parseISOish(m15Long[0].datetime);
+      const y = computeYesterdayHighLow(goldM15Long);
+
+      const dNow = parseISOish(goldM15Long[0].datetime);
       const todayKey = dNow ? dayKeyTZ(dNow) : null;
-      const lon = todayKey ? computeSessionRange(m15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};
-      const ny  = todayKey ? computeSessionRange(m15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};
 
-      setSessionUI(price, y.yHigh, y.yLow, lon, ny);
+      const lon = todayKey ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};
+      const ny  = todayKey ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};
 
-      resistances = resistances.concat([y.yHigh, lon.hi, ny.hi].filter(v=>v!==null && isFinite(v)));
-      supports    = supports.concat([y.yLow, lon.lo, ny.lo].filter(v=>v!==null && isFinite(v)));
+      setSessionLevelsUI(price, y.yHigh, y.yLow, lon, ny);
+
+      if(isFinite(y.yHigh)) resistances.push(y.yHigh);
+      if(isFinite(lon.hi))  resistances.push(lon.hi);
+      if(isFinite(ny.hi))   resistances.push(ny.hi);
+
+      if(isFinite(y.yLow)) supports.push(y.yLow);
+      if(isFinite(lon.lo)) supports.push(lon.lo);
+      if(isFinite(ny.lo))  supports.push(ny.lo);
 
       const near = pickNearest(price, supports, resistances);
       const loc = setLevelUI(price, near.sup, near.res, lvlPct);
@@ -438,91 +845,231 @@
       const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);
       if(sessionOk) score++;
 
-      if(sessionOn && !lockedDir && proposed){
-        const lockReady = (usd.state !== 'UNCLEAR') && (gold.ok || atLevelOk);
-        if(lockReady){ lockedDir = proposed; updateSessionUI(); }
+      // B) Auto-lock (smart): respect toggle + quality threshold
+      if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){
+        if(score >= lockMinScore && usd.state !== 'UNCLEAR'){
+          lockedDir = proposed;
+          updateSessionUI();
+          updateABUI();
+          toast('🔒 Direction locked: ' + lockedDir);
+        }
       }
 
       let decision = 'NO';
-      let reason = 'Waiting for clean story: USD pressure + gold confirm + at a key level.';
-      if(!sessionOn) reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';
-      else if(isNewsLockedNow()) reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';
-      else if(lockedDir && proposed && lockedDir !== proposed) reason = 'Direction is locked to ' + lockedDir + ' ONLY. Market bias disagrees. End session or wait.';
-      else if(usd.state === 'UNCLEAR') reason = 'USD pressure is unclear (EURUSD not moving enough). Wait.';
-      else if(!gold.ok) reason = 'Gold is not confirming USD bias (choppy). Wait for a clean push.';
-      else if(loc.okDir === null) reason = 'Price is MID-RANGE (not at Support/Resistance). Wait for a key level touch.';
-      else if(loc.okDir !== proposed) reason = 'Price is at ' + loc.loc + ', but direction doesn’t match. Wait (no counter-trend).';
-      else { decision = proposed; reason = (proposed === 'BUY') ? 'USD weak + gold bullish + at SUPPORT. Look for BUY setups only.' : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.'; }
+      let reason = 'Waiting for clean story: USD + gold confirm + at a key level.';
 
-      setDecision(decision, reason, score);
+      if(!sessionOn){
+        reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';
+      } else if(isNewsLockedNow()){
+        decision = 'NO';
+        reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';
+      } else if(lockedDir && proposed && lockedDir !== proposed){
+        reason = 'Direction locked to ' + lockedDir + ' ONLY. Market bias disagrees. End session or wait.';
+      } else if(usd.state === 'UNCLEAR'){
+        reason = 'USD pressure unclear (EURUSD not moving enough). Wait.';
+      } else if(!gold.ok){
+        reason = 'Gold not confirming USD bias (choppy). Wait for a clean push.';
+      } else if(loc.okDir === null){
+        reason = 'Price is MID-RANGE (not at Support/Resistance). Wait.';
+      } else if(loc.okDir !== proposed){
+        reason = 'At ' + loc.loc + ', but direction doesn’t match. No counter-trend.';
+      } else {
+        decision = proposed;
+        reason = (proposed === 'BUY')
+          ? 'USD weak + gold bullish + at SUPPORT. Look for BUY setups only.'
+          : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.';
+      }
+
+      if(sessionOn && autoLockOn && !lockedDir && lockRule === 'signal'){
+        if(score >= lockMinScore && (decision === 'BUY' || decision === 'SELL')){
+          lockedDir = decision;
+          updateSessionUI();
+          updateABUI();
+          toast('🔒 Direction locked: ' + lockedDir);
+        }
+      }
+
+      // Sentiment filter (optional)
+if(decision === 'BUY' || decision === 'SELL'){
+  if(!sentimentAllows(decision)){
+    decision = 'NO';
+    reason = 'Sentiment filter blocked this direction (crowded side).';
+  }
+}
+
+// Build trade ticket only when signal is clean (score 4/4) and actionable
+let ticket = null;
+if((decision === 'BUY' || decision === 'SELL') && score >= 4){
+  ticket = buildTicket(decision, price, near.sup, near.res);
+}
+window.__LAST_TICKET = ticket;
+setTicketUI(ticket);
+
+setDecision(decision, reason, score);
+      maybeAlert(decision, loc.loc, price);
+
       ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();
       save();
     }catch(err){
       console.error(err);
       setConn(false);
-      setDecision('NO', 'Refresh failed. Check API key, internet, or rate limits.', 0);
+      setDecision('NO', 'Refresh failed. Check internet, Worker, or rate limits.', 0);
       ui.lastUpdate.textContent = 'Last update: —';
     }
   }
 
-  function startSession(){ sessionOn = true; updateSessionUI(); save(); refresh(); }
-  function endSession(){ sessionOn = false; lockedDir = null; updateSessionUI(); save(); }
-
-  function setAuto(){
-    const sec = parseInt(ui.autoRefresh.value || '0', 10);
-    if(autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-    ui.autoLabel.textContent = sec ? (sec + 's') : 'Off';
-    if(sec) autoTimer = setInterval(refresh, sec*1000);
+  function startSession(){
+    sessionOn = true;
+    lockedDir = null;
+    updateSessionUI();
+    save();
+    refresh();
+  }
+  function endSession(){
+    sessionOn = false;
+    lockedDir = null;
+    updateSessionUI();
     save();
   }
 
   ui.today.textContent = new Date().toLocaleDateString();
+  const jsStatus = $('jsStatus'); if(jsStatus) jsStatus.textContent = 'JS: loaded ✅';
   restore();
-  computeRR();
   updateSessionUI();
-  setAuto();
-
-  ui.refresh.addEventListener('click', refresh);
-  ui.start.addEventListener('click', startSession);
-  ui.end.addEventListener('click', endSession);
-  ui.threshold.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.levelDistance.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.levelsLookback.addEventListener('change', ()=>{ save(); refresh(); });
-  ui.autoRefresh.addEventListener('change', ()=>{ setAuto(); refresh(); });
-  ui.entry.addEventListener('input', ()=>{ computeRR(); save(); });
-  ui.sl.addEventListener('input', ()=>{ computeRR(); save(); });
-  ui.tp.addEventListener('input', ()=>{ computeRR(); save(); });
-
-  // v2.3 alerts/news listeners
-  if(ui.alertsToggle){
-    ui.alertsToggle.addEventListener('change', async ()=>{
-      alertsOn = ui.alertsToggle.value === 'on';
-      if(alertsOn) await ensureNotificationPermission();
-      updateAlertsUI(); save();
-    });
-    ui.alertCooldown.addEventListener('change', ()=>{
-      alertCooldownSec = parseInt(ui.alertCooldown.value||'120',10);
-      updateAlertsUI(); save();
-    });
-  }
-
-  if(ui.newsPre){
-    ui.newsPre.addEventListener('change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
-    ui.newsPost.addEventListener('change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
-    ui.saveNews.addEventListener('click', ()=>{
-      news.dtLocal = ui.newsEvent.value || null;
-      news.label = (ui.newsLabel.value||'').trim();
-      updateNewsUI(); save(); toast('News event saved');
-    });
-    ui.clearNews.addEventListener('click', ()=>{
-      news.dtLocal = null; news.label='';
-      ui.newsEvent.value=''; ui.newsLabel.value='';
-      updateNewsUI(); save(); toast('News event cleared');
-    });
-  }
-
   updateAlertsUI();
   updateNewsUI();
+  updateABUI();
+  setAuto();
+
+  // Theme + Install
+  applyTheme(themeMode);
+  on(ui.themeBtn,'click', ()=> applyTheme(themeMode === 'light' ? 'dark' : 'light'));
+  setupInstall();
+  registerSW();
+  on(ui.resetBtn,'click', ()=> nukeCachesAndSW());
+  // If you ever get stuck on an older version, open ?reset=1
+  try{
+    const u = new URL(location.href);
+    if(u.searchParams.get('reset') === '1'){
+      nukeCachesAndSW();
+      return;
+    }
+  }catch(e){}
+
+
+  on(ui.refresh,'click',refresh);
+  on(ui.start,'click',startSession);
+  on(ui.end,'click',endSession);
+
+  on(ui.threshold,'change',()=>{ save(); refresh(); });
+  on(ui.levelDistance,'change',()=>{ save(); refresh(); });
+  on(ui.levelsLookback,'change',()=>{ save(); refresh(); });
+  on(ui.autoRefresh,'change',()=>{ setAuto(); refresh(); });
+
+  // A+B controls
+  on(ui.softAlerts,'change', ()=>{
+    softAlertsOn = ui.softAlerts.value === 'on';
+    updateABUI(); save();
+  });
+  on(ui.softCooldown,'change', ()=>{
+    softCooldownSec = parseInt(ui.softCooldown.value||'60',10);
+    updateABUI(); save();
+  });
+  on(ui.autoLock,'change', ()=>{
+    autoLockOn = ui.autoLock.value === 'on';
+    if(!autoLockOn){ lockedDir = null; updateSessionUI(); }
+    updateABUI(); save();
+  });
+  on(ui.lockRule,'change', ()=>{
+    lockRule = ui.lockRule.value || 'signal';
+    updateABUI(); save();
+  });
+
+  on(ui.lockMinScore,'change', ()=>{
+    lockMinScore = parseInt(ui.lockMinScore.value||'4',10);
+    updateABUI(); save();
+  });
+
+  on(ui.minScore,'change', ()=>{
+    softMinScore = parseInt(ui.minScore.value||'4',10);
+    updateABUI(); save();
+  });
+  on(ui.levelAlerts,'change', ()=>{
+    levelAlertsOn = ui.levelAlerts.value === 'on';
+    updateABUI(); save();
+  });
+
+
+
+  on(ui.alertsToggle,'change', async ()=>{
+    alertsOn = ui.alertsToggle.value === 'on';
+    if(alertsOn) await ensureNotificationPermission();
+    updateAlertsUI(); save();
+  });
+  on(ui.alertCooldown,'change', ()=>{
+    alertCooldownSec = parseInt(ui.alertCooldown.value||'120',10);
+    updateAlertsUI(); save();
+  });
+
+  on(ui.newsPre,'change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
+  on(ui.newsPost,'change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
+
+  on(ui.saveNews,'click', ()=>{
+    news.dtLocal = ui.newsEvent.value || null;
+    news.label = (ui.newsLabel.value||'').trim();
+    updateNewsUI(); save(); toast('News event saved');
+  });
+  on(ui.clearNews,'click', ()=>{
+    news.dtLocal = null; news.label='';
+    ui.newsEvent.value=''; ui.newsLabel.value='';
+    updateNewsUI(); save(); toast('News event cleared');
+  });
+
+  on(ui.newsAuto,'change', ()=>{
+    newsAuto = ui.newsAuto.value === 'on';
+    updateNewsUI(); save();
+    if(newsAuto) autoLoadNews(true);
+  });
+  on(ui.loadNews,'click', ()=> autoLoadNews(true));
+  on(ui.newsUpcoming,'change', ()=>{
+    const i = parseInt(ui.newsUpcoming.value||'0',10);
+    if(upcomingUsd[i]) applyEvent(upcomingUsd[i]);
+  });
+
+  autoLoadNews(false);
+  bindLateUI();
+
+  // Sentiment
+  fetchSentiment();
+  const ssec = parseInt(C.SENTIMENT_REFRESH_SECONDS || 120, 10);
+  if(ssec){
+    if(sentimentTimer) clearInterval(sentimentTimer);
+    sentimentTimer = setInterval(fetchSentiment, ssec*1000);
+  }
+
+  on(ui.sentRule,'change', ()=>{
+    sentimentRule = ui.sentRule.value || 'info';
+    updateSentimentUI(true);
+    save();
+    refresh();
+  });
+
+  on(ui.copyTicket,'click', async ()=>{
+    try{
+      const t = window.__LAST_TICKET || null;
+      if(!t){ toast('No ticket yet'); return; }
+      await navigator.clipboard.writeText(ticketText(t));
+      toast('Ticket copied ✅');
+    }catch(e){ toast('Copy failed'); }
+  });
+
+  on(ui.openXM,'click', ()=>{
+    window.open('https://www.xm.com/', '_blank');
+  });
 
   refresh();
+  }catch(e){
+    console.error(e);
+    const s=$('jsStatus'); if(s) s.textContent='JS error ❌';
+  }
 })();
