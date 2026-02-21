@@ -400,7 +400,7 @@ async function nukeCachesAndSW(){
       localStorage.removeItem('GS_THEME');
     }catch(e){}
     toast('Cache cleared ✅ reloading…');
-    setTimeout(()=> location.replace(location.pathname + '?v=262'), 600);
+    setTimeout(()=> location.replace(location.pathname + '?v=263'), 600);
   }catch(e){
     toast('Fix failed');
   }
