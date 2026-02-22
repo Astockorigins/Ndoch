@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gold Sniper</title>
+  <meta name="theme-color" content="#0B0F19" id="themeColorMeta" />
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0B0F19" />
+  <style>
+    :root{
+      --bg:#0B0F19;
+      --text:#E5E7EB;
+      --card:#111827;
+      --cardBorder:#1F2937;
+      --muted:#94A3B8;
+      --soft:#0f172a;
+      --btn:#0f172a;
+      --btnText:#E5E7EB;
+      --shadow: rgba(0,0,0,.25);
+      color-scheme: dark;
+    }
+    body.light{
+      --bg:#F8FAFC;
+      --text:#0F172A;
+      --card:#FFFFFF;
+      --cardBorder:#E2E8F0;
+      --muted:#475569;
+      --soft:#F1F5F9;
+      --btn:#FFFFFF;
+      --btnText:#0F172A;
+      --shadow: rgba(15,23,42,.10);
+      color-scheme: light;
+    }
+
+    body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+    .wrap{max-width:720px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--cardBorder);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 6px 22px var(--shadow)}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{font-size:18px;margin:0}
+    .sub{opacity:.85;font-size:12px;line-height:1.35;margin-top:6px;color:var(--muted)}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--cardBorder);border-radius:999px;font-size:12px;opacity:.95;background:var(--soft)}
+    .green{color:#34D399;border-color:#065F46;background:#052e1a}
+    .red{color:#FCA5A5;border-color:#7F1D1D;background:#2a0b0b}
+    .blue{color:#93C5FD;border-color:#1D4ED8;background:#0b1b3d}
+    .amber{color:#FBBF24;border-color:#92400E;background:#2a1b00}
+    .gray{color:#CBD5E1;border-color:#334155;background:#0f172a}
+    body.light .gray{color:#334155;border-color:#CBD5E1;background:#F1F5F9}
+    .big{padding:16px;border-radius:18px;border:1px solid var(--cardBorder);background:linear-gradient(180deg,var(--soft),var(--bg));}
+    .decision{font-size:28px;font-weight:900;letter-spacing:.3px;margin:0}
+    .reason{font-size:12px;opacity:.85;line-height:1.4;margin-top:6px;color:var(--muted)}
+    .kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .k{background:var(--soft);border:1px solid var(--cardBorder);border-radius:14px;padding:10px}
+    .k .t{font-size:11px;opacity:.8;color:var(--muted)}
+    .k .v{font-size:14px;font-weight:800;margin-top:2px}
+    .k .s{font-size:11px;opacity:.75;margin-top:4px;line-height:1.3;color:var(--muted)}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap}
+    button{flex:1;min-width:140px;padding:12px;border-radius:16px;border:1px solid var(--cardBorder);background:var(--btn);color:var(--btnText);font-weight:900}
+    button.primary{border-color:#334155;background:#111c35;color:#E5E7EB}
+    body.light button.primary{background:#0f172a;color:#F8FAFC;border-color:#0f172a}
+    button.danger{border-color:#7F1D1D;background:#2a0b0b;color:#FCA5A5}
+    button:disabled{opacity:.5}
+    input, select{width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--cardBorder);background:var(--soft);color:var(--text)}
+    label{display:block;font-size:11px;opacity:.8;margin:8px 0 6px;color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .tiny{font-size:11px;opacity:.8;line-height:1.35;color:var(--muted)}
+    .sep{height:1px;background:var(--cardBorder);margin:12px 0}
+    .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#000;color:#fff;padding:10px 12px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s}
+    body.light .toast{background:#0f172a;color:#fff}
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <h1>🥇 Gold Sniper <span class="pill gray">v2.6.2</span></h1>
+        <div id="conn" class="pill blue"><strong>ONLINE</strong><div class="row" style="gap:8px;justify-content:flex-end">
+            <button type="button" id="themeBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🌙 Dark</button>
+            <button type="button" id="installBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px;display:none">⬇️ Install</button>
+            <button type="button" id="resetBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🧹 Fix</button>
+          </div>
+        </div>
+      </div>
+      <div class="sub">
+        <span class="pill amber">⚡ Data mode: LITE (fewer API calls)</span><br>USD pressure (EURUSD) + Gold confirmation + Key Levels (H1/M15 swings + Yesterday + London/NY ranges).
+      </div>
+      <div class="tiny" id="lastUpdate">Last update: —</div>
+      <div class="tiny" id="jsStatus">JS: loading…</div>
+    </div>
+
+    <div class="card big">
+      <p class="decision" id="decisionText">⛔ NO TRADE</p>
+      <div class="reason" id="decisionReason">Waiting for clean story: USD + gold confirm + at a key level.</div>
+
+      <div class="kpi">
+        <div class="k">
+          <div class="t">USD Pressure (EURUSD)</div>
+          <div class="v" id="usdState">UNCLEAR</div>
+          <div class="s" id="usdDetail">—</div>
+        </div>
+        <div class="k">
+          <div class="t">Gold Reaction (XAUUSD)</div>
+          <div class="v" id="goldState">UNCLEAR</div>
+          <div class="s" id="goldDetail">—</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <div class="lock">
+          <span class="pill" id="sessionPill">Session: <b id="sessionState">OFF</b></span>
+          <span class="pill" id="dirPill">Direction: <b id="dirState">—</b></span>
+          <span class="pill" id="levelPill">Key Level: <b id="levelState">—</b></span>
+        </div>
+        <span class="pill amber" id="scorePill">Score: <b id="scoreVal">0/4</b></span>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button id="refresh" class="primary">Refresh</button>
+        <button id="start" class="primary">Start Session</button>
+        <button id="end" class="danger">End Session</button>
+      
+      <div class="sep"></div>
+
+      <div class="card" id="abCard" style="margin:0;background:#0f172a">
+        <div class="row">
+          <div class="pill gray">⚙️ A + B</div>
+          <div class="pill" id="lockPill">Auto-lock: <b id="lockModeText">On</b></div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Soft Alerts</label>
+            <select id="softAlerts">
+              <option value="on" selected>On (banner + vibration)</option>
+              <option value="off">Off</option>
+            </select>
+            <div class="tiny">No notification permission needed. Works on phone.</div>
+          </div>
+          <div>
+            <label>Auto-lock direction</label>
+            <select id="autoLock">
+              <option value="on" selected>On (locks after first valid signal)</option>
+              <option value="off">Off</option>
+            </select>
+            <div class="tiny">Prevents flip-flop after you start session.</div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Alert cooldown</label>
+            <select id="softCooldown">
+              <option value="30">30s</option>
+              <option value="60" selected>60s</option>
+              <option value="120">120s</option>
+            </select>
+          </div>
+          <div>
+            <label>Lock rule</label>
+            <select id="lockRule">
+              <option value="signal" selected>Lock on first BUY/SELL</option>
+              <option value="bias">Lock on first clear USD bias</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <label>Alert filter</label>
+            <select id="minScore">
+              <option value="4" selected>Only 4/4 signals (sniper)</option>
+              <option value="3">3/4 or higher (more alerts)</option>
+            </select>
+            <div class="tiny">Stops alerts when signal is not clean.</div>
+          </div>
+          <div>
+            <label>Level alerts</label>
+            <select id="levelAlerts">
+              <option value="off" selected>Off</option>
+              <option value="on">On (alert when hits Support/Resistance)</option>
+            </select>
+            <div class="tiny">Vibrates when price reaches a key level.</div>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px">
+  <div>
+    <label>Auto-lock quality</label>
+    <select id="lockMinScore">
+      <option value="4" selected>Lock only on 4/4 (best)</option>
+      <option value="3">Lock on 3/4 or higher</option>
+    </select>
+    <div class="tiny">Stops locking on weak signals.</div>
+  </div>
+  <div>
+    <label>Lock status</label>
+    <div class="pill" style="margin-top:6px">Locked: <b id="lockStateText">No</b></div>
+    <div class="tiny">Resets when you end session.</div>
+  </div>
+</div>
+
+<div class="tiny" style="margin-top:10px" id="abHint">Tip: Start Session → wait for first clean signal → direction locks.</div>
+      </div>
+
+</div>
+
+      <div class="tiny" style="margin-top:10px">
+        Trade only when USD is clear + Gold confirms + Price is at Support/Resistance + Session direction matches.
+      </div>
+    </div>
+
+    <div class="card" id="levelsCard">
+      <div class="row">
+        <div class="pill gray">🧱 Key Levels</div>
+        <div class="pill">Price: <b id="priceNow">—</b></div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="k">
+          <div class="t">Nearest Resistance</div>
+          <div class="v" id="resLevel">—</div>
+          <div class="s" id="resDist">—</div>
+        </div>
+        <div class="k">
+          <div class="t">Nearest Support</div>
+          <div class="v" id="supLevel">—</div>
+          <div class="s" id="supDist">—</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="row">
+        <div class="pill" id="locPill">📍 Location: <b id="locState">MID-RANGE</b></div>
+        <div class="tiny">MID-RANGE = wait. AT RES = SELL only. AT SUP = BUY only.</div>
+      </div>
+    </div>
+
+    <div class="card" id="sessionLevels">
+      <div class="row">
+        <div class="pill gray">🗓️ Yesterday + Sessions</div>
+        <div class="pill">TZ: <b id="tzLabel">UTC+03:00</b></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="k">
+          <div class="t">Yesterday High</div>
+          <div class="v" id="yHigh">—</div>
+          <div class="s" id="yHighDist">—</div>
+        </div>
+        <div class="k">
+          <div class="t">Yesterday Low</div>
+          <div class="v" id="yLow">—</div>
+          <div class="s" id="yLowDist">—</div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="k">
+          <div class="t">London Range (High / Low)</div>
+          <div class="v" id="lonRange">—</div>
+          <div class="s" id="lonDist">—</div>
+        </div>
+        <div class="k">
+          <div class="t">NY Range (High / Low)</div>
+          <div class="v" id="nyRange">—</div>
+          <div class="s" id="nyDist">—</div>
+        </div>
+      </div>
+      <div class="tiny" style="margin-top:10px">
+        Session windows use Nairobi time. If DST shifts NY/London times, adjust in config.js.
+      </div>
+    </div>
+
+    <div class="card" id="alertsCard">
+      <div class="row">
+        <div class="pill gray">🔔 Alerts</div>
+        <div class="pill" id="alertStatusPill">Status: <b id="alertStatus">Off</b></div>
+      </div>
+      <div class="sub">Notifies while the app is open (phones limit true background notifications).</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Alerts</label>
+          <select id="alertsToggle">
+            <option value="off" selected>Off</option>
+            <option value="on">On</option>
+          </select>
+        </div>
+        <div>
+          <label>Cooldown</label>
+          <select id="alertCooldown">
+            <option value="60">60s</option>
+            <option value="120" selected>120s</option>
+            <option value="300">300s</option>
+          </select>
+        </div>
+      </div>
+      <div class="tiny" style="margin-top:10px">
+        Allow notification permission when asked.
+      </div>
+    </div>
+
+    <div class="card" id="newsCard">
+      <div class="row">
+        <div class="pill red">🛑 News Kill-Switch</div>
+        <div class="pill" id="newsPill">Lock: <b id="newsLockState">OFF</b></div>
+      </div>
+      <div class="sub">Auto-loads upcoming High-impact USD news from your Worker. You can still set manually.</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Block minutes BEFORE</label>
+          <select id="newsPre">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+        <div>
+          <label>Block minutes AFTER</label>
+          <select id="newsPost">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="grid2">
+        <div>
+          <label>Auto-load</label>
+          <select id="newsAuto">
+            <option value="on" selected>On</option>
+            <option value="off">Off (manual)</option>
+          </select>
+          <div class="tiny">Loads next USD High event automatically.</div>
+        </div>
+        <div>
+          <label>Upcoming USD High events</label>
+          <select id="newsUpcoming"></select>
+          <div class="tiny">Pick another event if you want.</div>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button id="loadNews" class="primary">Auto-load Now</button>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="grid2">
+        <div>
+          <label>Next Event (Nairobi time)</label>
+          <input id="newsEvent" type="datetime-local" />
+          <div class="tiny">If auto-load is off, set manually.</div>
+        </div>
+        <div>
+          <label>Event label</label>
+          <input id="newsLabel" placeholder="e.g. NFP / CPI / FOMC" maxlength="24" />
+          <div class="tiny">Used for lock display + alerts.</div>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px">
+        <button id="saveNews" class="primary">Save Event</button>
+        <button id="clearNews" class="danger">Clear Event</button>
+      </div>
+
+      <div class="tiny" style="margin-top:10px" id="newsHint">No event saved.</div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill">Sniper sensitivity</div>
+        <div class="pill">Auto refresh: <b id="autoLabel">Off</b></div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Trend threshold (USD + Gold)</label>
+          <select id="threshold">
+            <option value="0.0003">Low (more signals)</option>
+            <option value="0.0006" selected>Medium (recommended)</option>
+            <option value="0.0010">High (fewer, cleaner signals)</option>
+          </select>
+        </div>
+        <div>
+          <label>Key level distance</label>
+          <select id="levelDistance">
+            <option value="0.0008">Tight (0.08%)</option>
+            <option value="0.0015" selected>Normal (0.15%)</option>
+            <option value="0.0025">Loose (0.25%)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div>
+          <label>Auto refresh interval</label>
+          <select id="autoRefresh">
+            <option value="0" selected>Off</option>
+            <option value="60">Every 1 min</option>
+            <option value="120">Every 2 min</option>
+            <option value="300">Every 5 min</option>
+          </select>
+        </div>
+        <div>
+          <label>Key levels lookback</label>
+          <select id="levelsLookback">
+            <option value="48">H1: 48 bars (2 days)</option>
+            <option value="72" selected>H1: 72 bars (3 days)</option>
+            <option value="120">H1: 120 bars (5 days)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="pill red">Discipline Guard</div>
+        <div class="pill">Today: <b id="today">—</b></div>
+      </div>
+      <div class="sub">Not financial advice. It’s a discipline system to stop low-quality trades.</div>
+    </div>
+  </div>
+
+  <div id="toast" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f172a;border:1px solid #1F2937;color:#E5E7EB;padding:10px 12px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-weight:800;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+<div class="card">
+  <div class="row">
+    <div class="pill gray">👥 Sentiment (Myfxbook)</div>
+    <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">XAUUSD Long</div>
+      <div class="value" id="sentLong">—</div>
+      <div class="tiny" id="sentLongLots">Lots: —</div>
+    </div>
+    <div>
+      <div class="label">XAUUSD Short</div>
+      <div class="value" id="sentShort">—</div>
+      <div class="tiny" id="sentShortLots">Lots: —</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <div class="pill amber" id="sentRulePill">Rule: <b id="sentRuleText">Info only</b></div>
+    <select id="sentRule">
+      <option value="info" selected>Info only</option>
+      <option value="contrarian70">Contrarian filter (≥70% crowded)</option>
+    </select>
+  </div>
+  <div class="tiny" id="sentHint" style="margin-top:10px">Tip: Sentiment is NOT a timing tool. Use it as a filter.</div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div class="pill gray">🧾 Trade Ticket (manual confirm)</div>
+    <div class="pill" id="ticketPill">Ready: <b id="ticketState">—</b></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">Direction</div>
+      <div class="value" id="tDir">—</div>
+      <div class="tiny">Generated only on clean signals.</div>
+    </div>
+    <div>
+      <div class="label">Entry (now)</div>
+      <div class="value" id="tEntry">—</div>
+      <div class="tiny">Use your broker spread/confirmation.</div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <div class="label">Stop Loss</div>
+      <div class="value" id="tSL">—</div>
+      <div class="tiny" id="tRisk">Risk: —</div>
+    </div>
+    <div>
+      <div class="label">Take Profit</div>
+      <div class="value" id="tTP">—</div>
+      <div class="tiny">Default RR: 1:2</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <div class="row">
+    <button class="btn" id="copyTicket">Copy ticket</button>
+    <button class="btn secondary" id="openXM">Open XM / MT5</button>
+  </div>
+  <div class="tiny" id="ticketHint" style="margin-top:10px">Copy → paste into notes or use it while placing the trade manually.</div>
+</div>
