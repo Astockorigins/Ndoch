@@ -240,16 +240,35 @@ function bindLateUI(){
 }
 
 function updateSentimentUI(ok){
-    bindLateUI();
+  bindLateUI();
   if(!ui.sentimentState) return;
+
   ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
   pill(ui.sentimentPill, ok ? 'blue' : 'red');
 
   if(ok){
-    ui.sentLong.textContent = isFinite(sentiment.longPct) ? (sentiment.longPct.toFixed(0) + '%') : '—';
-    ui.sentShort.textContent = isFinite(sentiment.shortPct) ? (sentiment.shortPct.toFixed(0) + '%') : '—';
+    // ✅ FIX: Normalize % from lots (prevents 100% + 100%)
+    const longLots = isFinite(sentiment.longLots) ? sentiment.longLots : 0;
+    const shortLots = isFinite(sentiment.shortLots) ? sentiment.shortLots : 0;
+    const totalLots = longLots + shortLots;
+
+    let longPct, shortPct;
+    if(totalLots > 0){
+      longPct = (longLots / totalLots) * 100;
+      shortPct = (shortLots / totalLots) * 100;
+    } else {
+      longPct = isFinite(sentiment.longPct) ? sentiment.longPct : NaN;
+      shortPct = isFinite(sentiment.shortPct) ? sentiment.shortPct : NaN;
+    }
+
+    ui.sentLong.textContent  = isFinite(longPct)  ? (longPct.toFixed(0) + '%')  : '—';
+    ui.sentShort.textContent = isFinite(shortPct) ? (shortPct.toFixed(0) + '%') : '—';
+
     ui.sentLongLots.textContent = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
     ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
+
+    // Optional: update donut instantly (no waiting for fallback timer)
+    try{ applySentimentIG(longPct, shortPct, '—'); }catch(e){}
 
     if(ui.sentRule){
       ui.sentRule.value = sentimentRule;
@@ -293,7 +312,7 @@ function buildTicket(decision, entry, sup, res){
 }
 
 function setTicketUI(ticket){
-    bindLateUI();
+  bindLateUI();
   if(!ui.ticketState) return;
   if(!ticket){
     ui.ticketState.textContent = '—';
@@ -396,7 +415,7 @@ async function nukeCachesAndSW(){
       for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
     }
     try{
-      localStorage.removeItem('GS_STATE');
+      localStorage.removeItem('gold_sniper_v241');
       localStorage.removeItem('GS_THEME');
     }catch(e){}
     toast('Cache cleared ✅ reloading…');
@@ -731,6 +750,7 @@ async function nukeCachesAndSW(){
         levelsLookback: ui.levelsLookback.value,
         alertsOn, alertCooldownSec,
         news, newsAuto,
+        sentimentRule, // ✅ FIX: persist sentiment rule
         softAlertsOn, softCooldownSec,
         autoLockOn, lockRule,
         softMinScore, levelAlertsOn,
@@ -890,22 +910,22 @@ async function nukeCachesAndSW(){
       }
 
       // Sentiment filter (optional)
-if(decision === 'BUY' || decision === 'SELL'){
-  if(!sentimentAllows(decision)){
-    decision = 'NO';
-    reason = 'Sentiment filter blocked this direction (crowded side).';
-  }
-}
+      if(decision === 'BUY' || decision === 'SELL'){
+        if(!sentimentAllows(decision)){
+          decision = 'NO';
+          reason = 'Sentiment filter blocked this direction (crowded side).';
+        }
+      }
 
-// Build trade ticket only when signal is clean (score 4/4) and actionable
-let ticket = null;
-if((decision === 'BUY' || decision === 'SELL') && score >= 4){
-  ticket = buildTicket(decision, price, near.sup, near.res);
-}
-window.__LAST_TICKET = ticket;
-setTicketUI(ticket);
+      // Build trade ticket only when signal is clean (score 4/4) and actionable
+      let ticket = null;
+      if((decision === 'BUY' || decision === 'SELL') && score >= 4){
+        ticket = buildTicket(decision, price, near.sup, near.res);
+      }
+      window.__LAST_TICKET = ticket;
+      setTicketUI(ticket);
 
-setDecision(decision, reason, score);
+      setDecision(decision, reason, score);
       maybeAlert(decision, loc.loc, price);
 
       ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();
