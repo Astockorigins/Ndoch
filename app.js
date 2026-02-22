@@ -112,7 +112,15 @@
     ui.tRisk ||= $('tRisk');
     ui.copyTicket ||= $('copyTicket');
     ui.openXM ||= $('openXM');
+
+   guideBtn: $('guideBtn'),
+guideModal: $('guideModal'),
+closeGuide: $('closeGuide'),
+
   }
+
+   
+
 
   // -------- state --------
   let sessionOn = false;
@@ -959,6 +967,19 @@
     updateSessionUI();
     save();
   }
+
+// User Guide modal
+if(ui.guideBtn && ui.guideModal){
+  ui.guideBtn.addEventListener('click', ()=>{
+    ui.guideModal.style.display = 'block';
+  });
+}
+if(ui.closeGuide && ui.guideModal){
+  ui.closeGuide.addEventListener('click', ()=>{
+    ui.guideModal.style.display = 'none';
+  });
+}
+
 
   ui.today.textContent = new Date().toLocaleDateString();
   const jsStatus = $('jsStatus'); if(jsStatus) jsStatus.textContent = 'JS: loaded ✅';

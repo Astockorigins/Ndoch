@@ -154,6 +154,7 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
           <button type="button" id="themeBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🌙 Dark</button>
           <button type="button" id="installBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px;display:none">⬇️ Install</button>
           <button type="button" id="resetBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🧹 Fix</button>
+           <button type="button" id="guideBtn">📘 Guide</button>
         </div>
       </div>
 
@@ -623,5 +624,75 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
   <!-- Cache-bust JS -->
   <script src="config.js?v=262"></script>
   <script src="app.js?v=262"></script>
+
+   <!-- USER GUIDE MODAL -->
+<div id="guideModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;
+  z-index:99999;
+">
+  <div style="
+    background:var(--card);
+    color:var(--text);
+    max-width:720px;
+    margin:6vh auto;
+    border-radius:18px;
+    padding:16px;
+    border:1px solid var(--cardBorder);
+    max-height:88vh;
+    overflow:auto;
+  ">
+    <div class="row">
+      <h2 style="margin:0;font-size:18px">📘 Gold Sniper – User Guide</h2>
+      <button id="closeGuide" style="padding:6px 12px;border-radius:999px">✖</button>
+    </div>
+
+<pre style="
+white-space:pre-wrap;
+font-family:system-ui;
+font-size:13px;
+line-height:1.5;
+margin-top:12px;
+opacity:.9;
+">
+GOLD SNIPER — USER GUIDE (v2.6.2)
+
+Gold Sniper is a DISCIPLINE TOOL.
+It does NOT predict or auto-trade.
+
+ONLY TRADE WHEN ALL ARE TRUE:
+
+1) USD pressure is clear (EURUSD)
+2) Gold confirms USD bias
+3) Price is at Support or Resistance
+4) Session is ON
+
+If any condition fails → NO TRADE.
+
+------------------------------
+HOW TO USE
+------------------------------
+1) Open app
+2) Tap Start Session
+3) Tap Refresh
+4) Wait for 4/4 score
+5) Trade manually
+6) End session when done
+
+------------------------------
+KEY RULES
+------------------------------
+• Mid-range = wait
+• News Lock ON = wait
+• Locked direction = respect it
+• Sentiment = filter only
+
+NO TRADE IS A POSITION.
+</pre>
+  </div>
+</div>
+
 </body>
 </html>
