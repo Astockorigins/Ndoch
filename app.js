@@ -56,7 +56,9 @@
     resetBtn: $('resetBtn'),
     themeColorMeta: $('themeColorMeta'),
 
-
+guideBtn: $('guideBtn'),
+guideModal: $('guideModal'),
+closeGuide: $('closeGuide'),
 
     // A+B
     softAlerts: $('softAlerts'),
