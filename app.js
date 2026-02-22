@@ -34,6 +34,7 @@
     sentShort: $('sentShort'),
     sentLongLots: $('sentLongLots'),
     sentShortLots: $('sentShortLots'),
+    sentClients: $('sentClients'),
     sentRule: $('sentRule'),
     sentRulePill: $('sentRulePill'),
     sentRuleText: $('sentRuleText'),
@@ -89,29 +90,29 @@
     loadNews: $('loadNews'),
   };
 
-function bindLateUI(){
-  // If cards are injected below scripts (or slow DOM), bind missing nodes here.
-  ui.sentimentPill ||= $('sentimentPill');
-  ui.sentimentState ||= $('sentimentState');
-  ui.sentLong ||= $('sentLong');
-  ui.sentShort ||= $('sentShort');
-  ui.sentLongLots ||= $('sentLongLots');
-  ui.sentShortLots ||= $('sentShortLots');
-  ui.sentRule ||= $('sentRule');
-  ui.sentRulePill ||= $('sentRulePill');
-  ui.sentRuleText ||= $('sentRuleText');
+  function bindLateUI(){
+    // If cards are injected below scripts (or slow DOM), bind missing nodes here.
+    ui.sentimentPill ||= $('sentimentPill');
+    ui.sentimentState ||= $('sentimentState');
+    ui.sentLong ||= $('sentLong');
+    ui.sentShort ||= $('sentShort');
+    ui.sentLongLots ||= $('sentLongLots');
+    ui.sentShortLots ||= $('sentShortLots');
+    ui.sentClients ||= $('sentClients');
+    ui.sentRule ||= $('sentRule');
+    ui.sentRulePill ||= $('sentRulePill');
+    ui.sentRuleText ||= $('sentRuleText');
 
-  ui.ticketPill ||= $('ticketPill');
-  ui.ticketState ||= $('ticketState');
-  ui.tDir ||= $('tDir');
-  ui.tEntry ||= $('tEntry');
-  ui.tSL ||= $('tSL');
-  ui.tTP ||= $('tTP');
-  ui.tRisk ||= $('tRisk');
-  ui.copyTicket ||= $('copyTicket');
-  ui.openXM ||= $('openXM');
-}
-
+    ui.ticketPill ||= $('ticketPill');
+    ui.ticketState ||= $('ticketState');
+    ui.tDir ||= $('tDir');
+    ui.tEntry ||= $('tEntry');
+    ui.tSL ||= $('tSL');
+    ui.tTP ||= $('tTP');
+    ui.tRisk ||= $('tRisk');
+    ui.copyTicket ||= $('copyTicket');
+    ui.openXM ||= $('openXM');
+  }
 
   // -------- state --------
   let sessionOn = false;
@@ -133,18 +134,16 @@ function bindLateUI(){
   let newsAuto = (C.NEWS_AUTO_DEFAULT || 'on') === 'on';
   let upcomingUsd = [];
 
-  // v2.5.0 Sentiment (Myfxbook via Worker)
-  let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, updated:null };
+  // Sentiment (Myfxbook via Worker)
+  let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, clients:null, updated:null };
   let sentimentRule = (C.SENTIMENT_RULE_DEFAULT || 'info');
   let sentimentTimer = null;
 
-  // v2.6.0 Theme + Install
+  // Theme + Install
   let themeMode = localStorage.getItem('GS_THEME') || 'dark';
   let deferredInstallPrompt = null;
 
-
-
-  // A) Soft alerts (banner + vibration, no Notification permission)
+  // A) Soft alerts
   let softAlertsOn = (C.SOFT_ALERTS_DEFAULT || 'on') === 'on';
   let softCooldownSec = Number(C.SOFT_ALERT_COOLDOWN_SECONDS || 60);
   let lastSoftAt = 0;
@@ -157,7 +156,6 @@ function bindLateUI(){
   let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
   let lockRule = (C.AUTO_LOCK_RULE || 'signal');
   let lockMinScore = Number(C.AUTO_LOCK_MIN_SCORE || 4);
-
 
   // -------- ui helpers --------
   function pill(el, cls){
@@ -222,177 +220,196 @@ function bindLateUI(){
   }
 
   async function fetchSentiment(){
-  try{
-    const sym = (C.SENTIMENT_SYMBOL || 'XAUUSD');
-    const data = await api('/sentiment', { symbol: sym });
-    if(!data || data.status !== 'ok') throw new Error('bad sentiment');
-    sentiment = {
-      longPct: Number(data.longPct),
-      shortPct: Number(data.shortPct),
-      longLots: Number(data.longLots),
-      shortLots: Number(data.shortLots),
-      updated: data.updated || null
-    };
-    updateSentimentUI(true);
-  }catch(e){
-    updateSentimentUI(false);
+    try{
+      const sym = (C.SENTIMENT_SYMBOL || 'XAUUSD');
+      const data = await api('/sentiment', { symbol: sym });
+      if(!data || data.status !== 'ok') throw new Error('bad sentiment');
+
+      sentiment = {
+        longPct: Number(data.longPct),
+        shortPct: Number(data.shortPct),
+        longLots: Number(data.longLots),
+        shortLots: Number(data.shortLots),
+
+        // ✅ Clients (accept many possible keys)
+        clients: (
+          data.clients ??
+          data.clientCount ??
+          data.clientsCount ??
+          data.traders ??
+          data.traderCount ??
+          data.accounts ??
+          null
+        ),
+
+        updated: data.updated || null
+      };
+
+      updateSentimentUI(true);
+    }catch(e){
+      updateSentimentUI(false);
+    }
   }
-}
 
-function updateSentimentUI(ok){
-  bindLateUI();
-  if(!ui.sentimentState) return;
+  function updateSentimentUI(ok){
+    bindLateUI();
+    if(!ui.sentimentState) return;
 
-  ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
-  pill(ui.sentimentPill, ok ? 'blue' : 'red');
+    ui.sentimentState.textContent = ok ? 'OK' : 'OFF';
+    pill(ui.sentimentPill, ok ? 'blue' : 'red');
 
-  if(ok){
-    // ✅ FIX: Normalize % from lots (prevents 100% + 100%)
-    const longLots = isFinite(sentiment.longLots) ? sentiment.longLots : 0;
-    const shortLots = isFinite(sentiment.shortLots) ? sentiment.shortLots : 0;
-    const totalLots = longLots + shortLots;
+    if(ok){
+      // ✅ Fix: normalize % from lots (prevents 100% / 100%)
+      const longLots = isFinite(sentiment.longLots) ? sentiment.longLots : 0;
+      const shortLots = isFinite(sentiment.shortLots) ? sentiment.shortLots : 0;
+      const totalLots = longLots + shortLots;
 
-    let longPct, shortPct;
-    if(totalLots > 0){
-      longPct = (longLots / totalLots) * 100;
-      shortPct = (shortLots / totalLots) * 100;
+      let longPct, shortPct;
+      if(totalLots > 0){
+        longPct = (longLots / totalLots) * 100;
+        shortPct = (shortLots / totalLots) * 100;
+      } else {
+        longPct = isFinite(sentiment.longPct) ? sentiment.longPct : NaN;
+        shortPct = isFinite(sentiment.shortPct) ? sentiment.shortPct : NaN;
+      }
+
+      ui.sentLong.textContent  = isFinite(longPct)  ? (longPct.toFixed(0) + '%')  : '—';
+      ui.sentShort.textContent = isFinite(shortPct) ? (shortPct.toFixed(0) + '%') : '—';
+
+      ui.sentLongLots.textContent  = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
+      ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
+
+      // ✅ Clients display (auto)
+      const clientsVal =
+        (sentiment.clients !== null && sentiment.clients !== undefined && sentiment.clients !== '')
+          ? String(sentiment.clients)
+          : '—';
+      if(ui.sentClients) ui.sentClients.textContent = clientsVal;
+
+      // ✅ Update donut instantly with clients
+      try{ applySentimentIG(longPct, shortPct, clientsVal); }catch(e){}
+
+      if(ui.sentRule){
+        ui.sentRule.value = sentimentRule;
+        ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
+        pill(ui.sentRulePill, sentimentRule === 'contrarian70' ? 'amber' : 'gray');
+      }
+    }else{
+      ui.sentLong.textContent = '—';
+      ui.sentShort.textContent = '—';
+      ui.sentLongLots.textContent = 'Lots: —';
+      ui.sentShortLots.textContent = 'Lots: —';
+      if(ui.sentClients) ui.sentClients.textContent = '—';
+    }
+  }
+
+  function sentimentAllows(direction){
+    if(sentimentRule !== 'contrarian70') return true;
+    if(!isFinite(sentiment.longPct) || !isFinite(sentiment.shortPct)) return true;
+    if(sentiment.longPct >= 70) return direction === 'SELL';
+    if(sentiment.shortPct >= 70) return direction === 'BUY';
+    return true;
+  }
+
+  function buildTicket(decision, entry, sup, res){
+    const rr = Number(C.TICKET_RR || 2.0);
+    const bufPct = Number(C.TICKET_SL_BUFFER_PCT || 0.0008);
+    const buf = entry * bufPct;
+
+    let sl = null, tp = null, risk = null;
+    if(decision === 'BUY'){
+      sl = (isFinite(sup) ? (sup - buf) : (entry - entry*0.002));
+      risk = entry - sl;
+      tp = entry + rr * risk;
+    } else if(decision === 'SELL'){
+      sl = (isFinite(res) ? (res + buf) : (entry + entry*0.002));
+      risk = sl - entry;
+      tp = entry - rr * risk;
     } else {
-      longPct = isFinite(sentiment.longPct) ? sentiment.longPct : NaN;
-      shortPct = isFinite(sentiment.shortPct) ? sentiment.shortPct : NaN;
+      return null;
     }
-
-    ui.sentLong.textContent  = isFinite(longPct)  ? (longPct.toFixed(0) + '%')  : '—';
-    ui.sentShort.textContent = isFinite(shortPct) ? (shortPct.toFixed(0) + '%') : '—';
-
-    ui.sentLongLots.textContent = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
-    ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
-
-    // Optional: update donut instantly (no waiting for fallback timer)
-    try{ applySentimentIG(longPct, shortPct, '—'); }catch(e){}
-
-    if(ui.sentRule){
-      ui.sentRule.value = sentimentRule;
-      ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
-      pill(ui.sentRulePill, sentimentRule === 'contrarian70' ? 'amber' : 'gray');
-    }
-  }else{
-    ui.sentLong.textContent = '—';
-    ui.sentShort.textContent = '—';
-    ui.sentLongLots.textContent = 'Lots: —';
-    ui.sentShortLots.textContent = 'Lots: —';
+    return { decision, entry, sl, tp, rr, risk };
   }
-}
 
-function sentimentAllows(direction){
-  if(sentimentRule !== 'contrarian70') return true;
-  if(!isFinite(sentiment.longPct) || !isFinite(sentiment.shortPct)) return true;
-  if(sentiment.longPct >= 70) return direction === 'SELL';
-  if(sentiment.shortPct >= 70) return direction === 'BUY';
-  return true;
-}
-
-function buildTicket(decision, entry, sup, res){
-  const rr = Number(C.TICKET_RR || 2.0);
-  const bufPct = Number(C.TICKET_SL_BUFFER_PCT || 0.0008);
-  const buf = entry * bufPct;
-
-  let sl = null, tp = null, risk = null;
-  if(decision === 'BUY'){
-    sl = (isFinite(sup) ? (sup - buf) : (entry - entry*0.002));
-    risk = entry - sl;
-    tp = entry + rr * risk;
-  } else if(decision === 'SELL'){
-    sl = (isFinite(res) ? (res + buf) : (entry + entry*0.002));
-    risk = sl - entry;
-    tp = entry - rr * risk;
-  } else {
-    return null;
-  }
-  return { decision, entry, sl, tp, rr, risk };
-}
-
-function setTicketUI(ticket){
-  bindLateUI();
-  if(!ui.ticketState) return;
-  if(!ticket){
-    ui.ticketState.textContent = '—';
-    pill(ui.ticketPill, 'gray');
-    ui.tDir.textContent = '—';
-    ui.tEntry.textContent = '—';
-    ui.tSL.textContent = '—';
-    ui.tTP.textContent = '—';
-    ui.tRisk.textContent = 'Risk: —';
-    return;
-  }
-  ui.ticketState.textContent = 'READY';
-  pill(ui.ticketPill, 'green');
-  ui.tDir.textContent = ticket.decision;
-  ui.tEntry.textContent = ticket.entry.toFixed(2);
-  ui.tSL.textContent = ticket.sl.toFixed(2);
-  ui.tTP.textContent = ticket.tp.toFixed(2);
-  ui.tRisk.textContent = 'Risk: ' + ticket.risk.toFixed(2) + ' (RR 1:' + (ticket.rr||2) + ')';
-}
-
-function ticketText(ticket){
-  if(!ticket) return '';
-  const sym = (C.GOLD_SYMBOL || 'XAU/USD').replace('/','');
-  return [
-    'GOLD SNIPER TRADE TICKET',
-    'Symbol: ' + sym,
-    'Direction: ' + ticket.decision,
-    'Entry: ' + ticket.entry.toFixed(2),
-    'SL: ' + ticket.sl.toFixed(2),
-    'TP: ' + ticket.tp.toFixed(2),
-    'RR: 1:' + (ticket.rr || 2),
-    'Note: Manual confirm. Adjust for spread.'
-  ].join('\n');
-}
-
-function applyTheme(mode){
-  themeMode = (mode === 'light') ? 'light' : 'dark';
-  document.body.classList.toggle('light', themeMode === 'light');
-  localStorage.setItem('GS_THEME', themeMode);
-
-  if(ui.themeBtn){
-    ui.themeBtn.textContent = (themeMode === 'light') ? '🌙 Dark' : '☀️ Light';
-  }
-  // Update theme-color for browser UI
-  const meta = ui.themeColorMeta;
-  if(meta){
-    meta.setAttribute('content', themeMode === 'light' ? '#F8FAFC' : '#0B0F19');
-  }
-}
-
-function setupInstall(){
-  if(!ui.installBtn) return;
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    ui.installBtn.style.display = 'inline-flex';
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    ui.installBtn.style.display = 'none';
-    toast('Installed ✅');
-  });
-
-  ui.installBtn.addEventListener('click', async () => {
-    // Android/Chrome
-    if(deferredInstallPrompt){
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
+  function setTicketUI(ticket){
+    bindLateUI();
+    if(!ui.ticketState) return;
+    if(!ticket){
+      ui.ticketState.textContent = '—';
+      pill(ui.ticketPill, 'gray');
+      ui.tDir.textContent = '—';
+      ui.tEntry.textContent = '—';
+      ui.tSL.textContent = '—';
+      ui.tTP.textContent = '—';
+      ui.tRisk.textContent = 'Risk: —';
       return;
     }
-    // iPhone Safari: no prompt event
-    toast('iPhone: Share → Add to Home Screen');
-  });
-}
+    ui.ticketState.textContent = 'READY';
+    pill(ui.ticketPill, 'green');
+    ui.tDir.textContent = ticket.decision;
+    ui.tEntry.textContent = ticket.entry.toFixed(2);
+    ui.tSL.textContent = ticket.sl.toFixed(2);
+    ui.tTP.textContent = ticket.tp.toFixed(2);
+    ui.tRisk.textContent = 'Risk: ' + ticket.risk.toFixed(2) + ' (RR 1:' + (ticket.rr||2) + ')';
+  }
 
-function registerSW(){
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').then(reg=>{
+  function ticketText(ticket){
+    if(!ticket) return '';
+    const sym = (C.GOLD_SYMBOL || 'XAU/USD').replace('/','');
+    return [
+      'GOLD SNIPER TRADE TICKET',
+      'Symbol: ' + sym,
+      'Direction: ' + ticket.decision,
+      'Entry: ' + ticket.entry.toFixed(2),
+      'SL: ' + ticket.sl.toFixed(2),
+      'TP: ' + ticket.tp.toFixed(2),
+      'RR: 1:' + (ticket.rr || 2),
+      'Note: Manual confirm. Adjust for spread.'
+    ].join('\n');
+  }
+
+  function applyTheme(mode){
+    themeMode = (mode === 'light') ? 'light' : 'dark';
+    document.body.classList.toggle('light', themeMode === 'light');
+    localStorage.setItem('GS_THEME', themeMode);
+
+    if(ui.themeBtn){
+      ui.themeBtn.textContent = (themeMode === 'light') ? '🌙 Dark' : '☀️ Light';
+    }
+    const meta = ui.themeColorMeta;
+    if(meta){
+      meta.setAttribute('content', themeMode === 'light' ? '#F8FAFC' : '#0B0F19');
+    }
+  }
+
+  function setupInstall(){
+    if(!ui.installBtn) return;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      ui.installBtn.style.display = 'inline-flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      ui.installBtn.style.display = 'none';
+      toast('Installed ✅');
+    });
+
+    ui.installBtn.addEventListener('click', async () => {
+      if(deferredInstallPrompt){
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        return;
+      }
+      toast('iPhone: Share → Add to Home Screen');
+    });
+  }
+
+  function registerSW(){
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js').then(reg=>{
         reg.update().catch(()=>{});
       }).catch(()=>{});
       let reloaded = false;
@@ -401,31 +418,31 @@ function registerSW(){
         reloaded = true;
         location.reload();
       });
+    }
   }
-}
 
-async function nukeCachesAndSW(){
-  try{
-    if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for(const r of regs){ try{ await r.unregister(); }catch(e){} }
-    }
-    if('caches' in window){
-      const keys = await caches.keys();
-      for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
-    }
+  async function nukeCachesAndSW(){
     try{
-      localStorage.removeItem('gold_sniper_v241');
-      localStorage.removeItem('GS_THEME');
-    }catch(e){}
-    toast('Cache cleared ✅ reloading…');
-    setTimeout(()=> location.replace(location.pathname + '?v=262'), 600);
-  }catch(e){
-    toast('Fix failed');
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for(const r of regs){ try{ await r.unregister(); }catch(e){} }
+      }
+      if('caches' in window){
+        const keys = await caches.keys();
+        for(const k of keys){ try{ await caches.delete(k); }catch(e){} }
+      }
+      try{
+        localStorage.removeItem('gold_sniper_v241');
+        localStorage.removeItem('GS_THEME');
+      }catch(e){}
+      toast('Cache cleared ✅ reloading…');
+      setTimeout(()=> location.replace(location.pathname + '?v=262'), 600);
+    }catch(e){
+      toast('Fix failed');
+    }
   }
-}
 
-// -------- logic --------
+  // -------- logic --------
   function classifyUSD(eurPct, th){
     if(eurPct <= -th) return { state:'STRONG', dir:'SELL' };
     if(eurPct >=  th) return { state:'WEAK', dir:'BUY' };
@@ -556,7 +573,7 @@ async function nukeCachesAndSW(){
     ui.yLowDist.textContent  = 'Distance: ' + fmtPct(yLow===null?Infinity:Math.abs(price-yLow)/price);
 
     ui.lonRange.textContent = (lon.hi && lon.lo) ? (fmtPrice(lon.hi) + ' / ' + fmtPrice(lon.lo)) : '—';
-    ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.lo)) : '—';
+    ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.hi) + '') : '—';
 
     const lonMin = Math.min((lon.hi===null?Infinity:Math.abs(lon.hi-price)/price),(lon.lo===null?Infinity:Math.abs(price-lon.lo)/price));
     const nyMin  = Math.min((ny.hi===null?Infinity:Math.abs(ny.hi-price)/price),(ny.lo===null?Infinity:Math.abs(price-ny.lo)/price));
@@ -750,7 +767,7 @@ async function nukeCachesAndSW(){
         levelsLookback: ui.levelsLookback.value,
         alertsOn, alertCooldownSec,
         news, newsAuto,
-        sentimentRule, // ✅ FIX: persist sentiment rule
+        sentimentRule, // ✅ persist sentiment rule
         softAlertsOn, softCooldownSec,
         autoLockOn, lockRule,
         softMinScore, levelAlertsOn,
@@ -798,9 +815,6 @@ async function nukeCachesAndSW(){
     setConn(true);
     const th = parseFloat(ui.threshold.value || '0.0006');
     const lvlPct = parseFloat(ui.levelDistance.value || '0.0015');
-    const h1Bars = parseInt(ui.levelsLookback.value || '72', 10);
-    const m15Bars = 96;
-    const goldM15LongBars = 220;
 
     try{
       const [eurTrend, goldM15Long] = await Promise.all([
@@ -810,7 +824,6 @@ async function nukeCachesAndSW(){
 
       const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
 
-      // LITE: compute gold 60m move from last N M15 bars (default 4)
       const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
       const goldNewest = goldM15Long[0].close;
       const goldOldest = goldM15Long[n].close;
@@ -826,7 +839,6 @@ async function nukeCachesAndSW(){
 
       const price = goldNewest;
 
-      // LITE: Key levels from M15 swings + Yesterday + Sessions (no extra API calls)
       const swM15 = findSwings(goldM15Long.slice(0, 160), 3);
       const highs = swM15.swingsHigh;
       const lows  = swM15.swingsLow;
@@ -859,13 +871,11 @@ async function nukeCachesAndSW(){
       let score = 0;
       if(usd.state !== 'UNCLEAR') score++;
       if(gold.ok) score++;
-      const atLevelOk = (loc.okDir !== null);
-      if(atLevelOk) score++;
+      if(loc.okDir !== null) score++;
       const proposed = usd.dir;
       const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);
       if(sessionOk) score++;
 
-      // B) Auto-lock (smart): respect toggle + quality threshold
       if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){
         if(score >= lockMinScore && usd.state !== 'UNCLEAR'){
           lockedDir = proposed;
@@ -909,7 +919,6 @@ async function nukeCachesAndSW(){
         }
       }
 
-      // Sentiment filter (optional)
       if(decision === 'BUY' || decision === 'SELL'){
         if(!sentimentAllows(decision)){
           decision = 'NO';
@@ -917,7 +926,6 @@ async function nukeCachesAndSW(){
         }
       }
 
-      // Build trade ticket only when signal is clean (score 4/4) and actionable
       let ticket = null;
       if((decision === 'BUY' || decision === 'SELL') && score >= 4){
         ticket = buildTicket(decision, price, near.sup, near.res);
@@ -954,6 +962,7 @@ async function nukeCachesAndSW(){
 
   ui.today.textContent = new Date().toLocaleDateString();
   const jsStatus = $('jsStatus'); if(jsStatus) jsStatus.textContent = 'JS: loaded ✅';
+
   restore();
   updateSessionUI();
   updateAlertsUI();
@@ -961,13 +970,12 @@ async function nukeCachesAndSW(){
   updateABUI();
   setAuto();
 
-  // Theme + Install
   applyTheme(themeMode);
   on(ui.themeBtn,'click', ()=> applyTheme(themeMode === 'light' ? 'dark' : 'light'));
   setupInstall();
   registerSW();
   on(ui.resetBtn,'click', ()=> nukeCachesAndSW());
-  // If you ever get stuck on an older version, open ?reset=1
+
   try{
     const u = new URL(location.href);
     if(u.searchParams.get('reset') === '1'){
@@ -975,7 +983,6 @@ async function nukeCachesAndSW(){
       return;
     }
   }catch(e){}
-
 
   on(ui.refresh,'click',refresh);
   on(ui.start,'click',startSession);
@@ -986,7 +993,6 @@ async function nukeCachesAndSW(){
   on(ui.levelsLookback,'change',()=>{ save(); refresh(); });
   on(ui.autoRefresh,'change',()=>{ setAuto(); refresh(); });
 
-  // A+B controls
   on(ui.softAlerts,'change', ()=>{
     softAlertsOn = ui.softAlerts.value === 'on';
     updateABUI(); save();
@@ -1018,8 +1024,6 @@ async function nukeCachesAndSW(){
     levelAlertsOn = ui.levelAlerts.value === 'on';
     updateABUI(); save();
   });
-
-
 
   on(ui.alertsToggle,'change', async ()=>{
     alertsOn = ui.alertsToggle.value === 'on';
@@ -1094,6 +1098,7 @@ async function nukeCachesAndSW(){
   }
 })();
 
+
 // --- Sentiment IG-style (visual only) ---
 function _pct(n){
   const x = Number(n);
@@ -1133,7 +1138,9 @@ function applySentimentIG(longPct, shortPct, clients){
     crowdPill.classList.remove('amber','gray','red','blue','green');
     crowdPill.classList.add(c.tone);
   }
-  if(clientsEl) clientsEl.textContent = (clients != null && clients !== '') ? String(clients) : '—';
+  if(clientsEl){
+    clientsEl.textContent = (clients != null && clients !== '') ? String(clients) : (clientsEl.textContent || '—');
+  }
 }
 
 // Fallback mirror: reads whatever your current code writes into sentLong/sentShort
@@ -1143,8 +1150,9 @@ function applySentimentIGFallback(){
     const S = document.getElementById('sentShort')?.textContent || '';
     const lp = parseFloat(L.replace('%',''));
     const sp = parseFloat(S.replace('%',''));
+    const c  = document.getElementById('sentClients')?.textContent || '—';
     if(isFinite(lp) && isFinite(sp)){
-      applySentimentIG(lp, sp, document.getElementById('sentClients')?.textContent || '');
+      applySentimentIG(lp, sp, c);
     }
   }catch(e){}
 }
