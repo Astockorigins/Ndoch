@@ -100,6 +100,42 @@ body.light #abCard{ background: var(--card) !important; }
  @media (max-width: 420px) {
   .pill { margin: 6px 6px; }
 }
+
+ /* Sentiment IG-style */
+.sentGrid{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+@media (max-width:420px){ .sentGrid{grid-template-columns:140px 1fr} }
+
+.sentDonutWrap{position:relative;width:150px;height:150px}
+@media (max-width:420px){ .sentDonutWrap{width:140px;height:140px} }
+
+.donut{
+  position:relative;
+  width:100%;height:100%;border-radius:999px;
+  background: conic-gradient(#60A5FA 0deg, #60A5FA 180deg, #F87171 180deg, #F87171 360deg);
+  border:1px solid var(--cardBorder);
+  box-shadow:0 10px 30px var(--shadow);
+}
+body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
+
+.donut::after{
+  content:"";position:absolute;inset:18px;border-radius:999px;
+  background:var(--card);border:1px solid var(--cardBorder);
+}
+
+.donutCenter{
+  position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+  text-align:center;
+}
+.donutBig{font-weight:900;font-size:22px;line-height:1}
+.donutSmall{font-size:10px;opacity:.75;letter-spacing:.12em}
+
+.sentLine{display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:99px;display:inline-block}
+.dot.long{background:#60A5FA}
+.dot.short{background:#F87171}
+.sentLabel{opacity:.85}
+.sentVal{font-size:16px}
+
   </style>
 </head>
 
@@ -480,43 +516,50 @@ body.light #abCard{ background: var(--card) !important; }
     </div>
 
     <!-- SENTIMENT (INSIDE BODY) -->
-    <div class="card">
-      <div class="row">
-        <div class="pill gray">👥 Sentiment (Myfxbook)</div>
-        <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
-      </div>
+    <!-- SENTIMENT (IG-style) -->
+<div class="card" id="sentCard">
+  <div class="row">
+    <div class="pill gray">👥 Client Sentiment</div>
+    <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
+  </div>
 
-      <div class="grid2" style="margin-top:12px">
-        <div>
-          <div class="tiny" style="opacity:.9">XAUUSD Long</div>
-          <div class="k" style="margin-top:8px">
-            <div class="v" id="sentLong">—</div>
-            <div class="tiny" id="sentLongLots">Lots: —</div>
-          </div>
-        </div>
-        <div>
-          <div class="tiny" style="opacity:.9">XAUUSD Short</div>
-          <div class="k" style="margin-top:8px">
-            <div class="v" id="sentShort">—</div>
-            <div class="tiny" id="sentShortLots">Lots: —</div>
-          </div>
-        </div>
+  <div class="sentGrid" style="margin-top:12px">
+    <div class="sentDonutWrap">
+      <div class="donut" id="sentDonut" aria-label="Sentiment donut"></div>
+      <div class="donutCenter">
+        <div class="donutBig" id="sentDominant">—</div>
+        <div class="donutSmall" id="sentDominantLabel">DOMINANT</div>
       </div>
+    </div>
+
+    <div class="sentStats">
+      <div class="sentLine">
+        <span class="dot long"></span>
+        <span class="sentLabel">Long</span>
+        <b class="sentVal" id="sentLong">—</b>
+      </div>
+      <div class="sentMeta tiny" id="sentLongLots">Lots: —</div>
+
+      <div class="sentLine" style="margin-top:10px">
+        <span class="dot short"></span>
+        <span class="sentLabel">Short</span>
+        <b class="sentVal" id="sentShort">—</b>
+      </div>
+      <div class="sentMeta tiny" id="sentShortLots">Lots: —</div>
 
       <div class="sep"></div>
 
-      <div class="row">
-        <div class="pill amber" id="sentRulePill">Rule: <b id="sentRuleText">Info only</b></div>
-        <select id="sentRule" style="max-width:320px">
-          <option value="info" selected>Info only</option>
-          <option value="contrarian70">Contrarian filter (≥70% crowded)</option>
-        </select>
+      <div class="row" style="justify-content:flex-start;gap:8px">
+        <span class="pill amber" id="sentCrowdPill">Crowding: <b id="sentCrowdText">—</b></span>
+        <span class="pill" id="sentClientsPill">Clients: <b id="sentClients">—</b></span>
       </div>
 
       <div class="tiny" id="sentHint" style="margin-top:10px">
-        Tip: Sentiment is NOT a timing tool. Use it as a filter.
+        Filter only (no timing). Balanced sentiment = ignore. Extreme crowd (≥70%) = caution.
       </div>
     </div>
+  </div>
+</div>
 
     <!-- TRADE TICKET (INSIDE BODY) -->
     <div class="card">

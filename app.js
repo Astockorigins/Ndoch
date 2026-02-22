@@ -1073,3 +1073,59 @@ setDecision(decision, reason, score);
     const s=$('jsStatus'); if(s) s.textContent='JS error ❌';
   }
 })();
+
+// --- Sentiment IG-style (visual only) ---
+function _pct(n){
+  const x = Number(n);
+  if(!isFinite(x)) return 0;
+  return Math.max(0, Math.min(100, x));
+}
+function _crowdLabel(longPct){
+  const lp = _pct(longPct);
+  const sp = 100 - lp;
+  if(lp >= 70) return {text:'LONG HEAVY', tone:'amber'};
+  if(sp >= 70) return {text:'SHORT HEAVY', tone:'amber'};
+  if(lp >= 60 || sp >= 60) return {text:'SLIGHT CROWD', tone:'gray'};
+  return {text:'BALANCED', tone:'gray'};
+}
+function applySentimentIG(longPct, shortPct, clients){
+  const donut = document.getElementById('sentDonut');
+  const dom = document.getElementById('sentDominant');
+  const domLbl = document.getElementById('sentDominantLabel');
+  const crowdPill = document.getElementById('sentCrowdPill');
+  const crowdText = document.getElementById('sentCrowdText');
+  const clientsEl = document.getElementById('sentClients');
+
+  const lp = _pct(longPct);
+  const sp = _pct(shortPct);
+  const deg = (lp/100)*360;
+
+  if(donut){
+    donut.style.background =
+      `conic-gradient(#60A5FA 0deg, #60A5FA ${deg}deg, #F87171 ${deg}deg, #F87171 360deg)`;
+  }
+  if(dom) dom.textContent = (lp >= sp) ? `${lp.toFixed(0)}%` : `${sp.toFixed(0)}%`;
+  if(domLbl) domLbl.textContent = (lp >= sp) ? 'LONG' : 'SHORT';
+
+  const c = _crowdLabel(lp);
+  if(crowdText) crowdText.textContent = c.text;
+  if(crowdPill){
+    crowdPill.classList.remove('amber','gray','red','blue','green');
+    crowdPill.classList.add(c.tone);
+  }
+  if(clientsEl) clientsEl.textContent = (clients != null && clients !== '') ? String(clients) : '—';
+}
+
+// Fallback mirror: reads whatever your current code writes into sentLong/sentShort
+function applySentimentIGFallback(){
+  try{
+    const L = document.getElementById('sentLong')?.textContent || '';
+    const S = document.getElementById('sentShort')?.textContent || '';
+    const lp = parseFloat(L.replace('%',''));
+    const sp = parseFloat(S.replace('%',''));
+    if(isFinite(lp) && isFinite(sp)){
+      applySentimentIG(lp, sp, document.getElementById('sentClients')?.textContent || '');
+    }
+  }catch(e){}
+}
+setInterval(applySentimentIGFallback, 1500);
