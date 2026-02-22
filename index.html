@@ -94,6 +94,12 @@ body.light .amber{ background: rgba(245, 158, 11, .14) !important; border-color:
 
 /* If any card was forced dark elsewhere */
 body.light #abCard{ background: var(--card) !important; }
+ /* Mobile pill spacing fix */
+.pill { margin: 4px 4px; }
+ 
+ @media (max-width: 420px) {
+  .pill { margin: 6px 6px; }
+}
   </style>
 </head>
 
