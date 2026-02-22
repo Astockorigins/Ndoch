@@ -86,6 +86,14 @@
       max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999
     }
     body.light #toast{background:#0f172a;color:#fff}
+/* Light-mode fixes for hard-coded pill backgrounds */
+body.light .green{ background: rgba(52, 211, 153, .12) !important; border-color: rgba(52, 211, 153, .35) !important; color:#065F46 !important; }
+body.light .red  { background: rgba(248, 113, 113, .12) !important; border-color: rgba(248, 113, 113, .35) !important; color:#7F1D1D !important; }
+body.light .blue { background: rgba(59, 130, 246, .12) !important; border-color: rgba(59, 130, 246, .35) !important; color:#1D4ED8 !important; }
+body.light .amber{ background: rgba(245, 158, 11, .14) !important; border-color: rgba(245, 158, 11, .35) !important; color:#92400E !important; }
+
+/* If any card was forced dark elsewhere */
+body.light #abCard{ background: var(--card) !important; }
   </style>
 </head>
 
