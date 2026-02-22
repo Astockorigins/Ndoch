@@ -6,7 +6,17 @@
   function on(el, ev, fn){
     if(!el) return;
     el.addEventListener(ev, fn);
-  }
+  } User Guide modal
+if(ui.guideBtn && ui.guideModal){
+  ui.guideBtn.addEventListener('click', ()=>{
+    ui.guideModal.style.display = 'block';
+  });
+}
+if(ui.closeGuide && ui.guideModal){
+  ui.closeGuide.addEventListener('click', ()=>{
+    ui.guideModal.style.display = 'none';
+  });
+}
 
   const ui = {
     conn: $('conn'), lastUpdate: $('lastUpdate'),
@@ -967,17 +977,27 @@ closeGuide: $('closeGuide'),
     save();
   }
 
-// User Guide modal
-if(ui.guideBtn && ui.guideModal){
-  ui.guideBtn.addEventListener('click', ()=>{
-    ui.guideModal.style.display = 'block';
-  });
-}
-if(ui.closeGuide && ui.guideModal){
-  ui.closeGuide.addEventListener('click', ()=>{
-    ui.guideModal.style.display = 'none';
-  });
-}
+
+
+
+// --- Guide Modal (safe open/close) ---
+on(ui.guideBtn, 'click', () => {
+  if(!ui.guideModal) return;
+  ui.guideModal.classList.add('open');
+});
+
+on(ui.guideCloseBtn, 'click', () => {
+  if(!ui.guideModal) return;
+  ui.guideModal.classList.remove('open');
+});
+
+// Tap outside sheet to close
+on(ui.guideModal, 'click', (e) => {
+  if(e.target === ui.guideModal){
+    ui.guideModal.classList.remove('open');
+  }
+});
+
 
 
   ui.today.textContent = new Date().toLocaleDateString();

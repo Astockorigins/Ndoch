@@ -138,6 +138,50 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
 
 <b id="sentClients">—</b>
 
+<style>
+/* --- Guide Modal (isolated + safe) --- */
+#guideModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:999999;
+  display:none;
+  pointer-events:none; /* important: do not block clicks when closed */
+}
+#guideModal.open{
+  display:block;
+  pointer-events:auto;
+}
+#guideSheet{
+  background:var(--card);
+  color:var(--text);
+  border:1px solid var(--cardBorder);
+  border-radius:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+  max-width:720px;
+  margin:6vh auto;
+  max-height:88vh;
+  overflow:auto;
+  padding:16px;
+}
+#guideCloseBtn{
+  min-width:auto;
+  flex:0;
+  padding:8px 12px;
+  border-radius:999px;
+}
+#guideText{
+  white-space:pre-wrap;
+  font-family:system-ui;
+  font-size:13px;
+  line-height:1.55;
+  margin:12px 0 0;
+  color:var(--text);
+  opacity:.92;
+}
+</style>
+
+
   </style>
 </head>
 
@@ -625,45 +669,21 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
   <script src="config.js?v=262"></script>
   <script src="app.js?v=262"></script>
 
-   <!-- USER GUIDE MODAL -->
-<div id="guideModal" style="
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  display:none;
-  z-index:99999;
-">
-  <div style="
-    background:var(--card);
-    color:var(--text);
-    max-width:720px;
-    margin:6vh auto;
-    border-radius:18px;
-    padding:16px;
-    border:1px solid var(--cardBorder);
-    max-height:88vh;
-    overflow:auto;
-  ">
+   <!-- USER GUIDE MODAL (SAFE) -->
+<div id="guideModal" aria-hidden="true">
+  <div id="guideSheet" class="card">
     <div class="row">
       <h2 style="margin:0;font-size:18px">📘 Gold Sniper – User Guide</h2>
-      <button id="closeGuide" style="padding:6px 12px;border-radius:999px">✖</button>
+      <button type="button" id="guideCloseBtn">✖</button>
     </div>
 
-<pre style="
-white-space:pre-wrap;
-font-family:system-ui;
-font-size:13px;
-line-height:1.5;
-margin-top:12px;
-opacity:.9;
-">
+    <pre id="guideText">
 GOLD SNIPER — USER GUIDE (v2.6.2)
 
 Gold Sniper is a DISCIPLINE TOOL.
 It does NOT predict or auto-trade.
 
 ONLY TRADE WHEN ALL ARE TRUE:
-
 1) USD pressure is clear (EURUSD)
 2) Gold confirms USD bias
 3) Price is at Support or Resistance
@@ -671,28 +691,22 @@ ONLY TRADE WHEN ALL ARE TRUE:
 
 If any condition fails → NO TRADE.
 
-------------------------------
-HOW TO USE
-------------------------------
-1) Open app
-2) Tap Start Session
-3) Tap Refresh
-4) Wait for 4/4 score
-5) Trade manually
-6) End session when done
+HOW TO USE:
+1) Start Session
+2) Refresh
+3) Wait for 4/4
+4) Use ticket to trade manually
+5) End Session when done
 
-------------------------------
-KEY RULES
-------------------------------
+RULES:
 • Mid-range = wait
 • News Lock ON = wait
 • Locked direction = respect it
 • Sentiment = filter only
 
 NO TRADE IS A POSITION.
-</pre>
+    </pre>
   </div>
 </div>
-
 </body>
 </html>
