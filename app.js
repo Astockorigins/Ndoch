@@ -56,6 +56,8 @@
     resetBtn: $('resetBtn'),
     themeColorMeta: $('themeColorMeta'),
 
+
+
     // A+B
     softAlerts: $('softAlerts'),
     softCooldown: $('softCooldown'),
@@ -112,11 +114,6 @@
     ui.tRisk ||= $('tRisk');
     ui.copyTicket ||= $('copyTicket');
     ui.openXM ||= $('openXM');
-
-   guideBtn: $('guideBtn'),
-guideModal: $('guideModal'),
-closeGuide: $('closeGuide'),
-
   }
 
    
