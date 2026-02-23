@@ -1,13 +1,3 @@
-/* Gold Sniper v2.6.2+ (App.js) — FULL FILE (Copy/Paste)
-   Includes: LITE logic, News lock, A+B, Sentiment + IG donut, Ticket, Theme/Install/Fix,
-   + Gold Strength Line Chart (REAL M15 closes, no extra API calls)
-
-   IMPORTANT:
-   - This file assumes your HTML has these IDs (must exist or will safely no-op):
-     goldChart, chartPill, chartTrend, chartNowVal, chartChgVal
-   - Keep your config.js loaded BEFORE app.js
-*/
-
 (function(){
   try{
     const C = window.CONFIG || {};
@@ -30,10 +20,8 @@
       resDist: $('resDist'), supDist: $('supDist'),
       locState: $('locState'), locPill: $('locPill'),
       tzLabel: $('tzLabel'),
-
       yHigh: $('yHigh'), yLow: $('yLow'), yHighDist: $('yHighDist'), yLowDist: $('yLowDist'),
       lonRange: $('lonRange'), nyRange: $('nyRange'), lonDist: $('lonDist'), nyDist: $('nyDist'),
-
       autoLabel: $('autoLabel'),
       threshold: $('threshold'), levelDistance: $('levelDistance'), autoRefresh: $('autoRefresh'), levelsLookback: $('levelsLookback'),
       today: $('today'), refresh: $('refresh'), start: $('start'), end: $('end'),
@@ -133,7 +121,7 @@
       ui.copyTicket ||= $('copyTicket');
       ui.openXM ||= $('openXM');
 
-      // Chart (if injected later)
+      // Chart
       ui.goldChart ||= $('goldChart');
       ui.chartPill ||= $('chartPill');
       ui.chartTrend ||= $('chartTrend');
@@ -161,7 +149,7 @@
     let newsAuto = (C.NEWS_AUTO_DEFAULT || 'on') === 'on';
     let upcomingUsd = [];
 
-    // Sentiment (Myfxbook via Worker)
+    // Sentiment (via Worker)
     let sentiment = { longPct:null, shortPct:null, longLots:null, shortLots:null, clients:null, updated:null };
     let sentimentRule = (C.SENTIMENT_RULE_DEFAULT || 'info');
     let sentimentTimer = null;
@@ -179,9 +167,9 @@
     let levelAlertsOn = (C.SOFT_LEVEL_ALERTS_DEFAULT || 'off') === 'on';
     let lastLevelLoc = '';
 
-    // B) Session auto-lock
+    // B) Auto-lock
     let autoLockOn = (C.AUTO_LOCK_DEFAULT || 'on') === 'on';
-    let lockRule = (C.AUTO_LOCK_RULE || 'signal'); // "signal" or "bias"
+    let lockRule = (C.AUTO_LOCK_RULE || 'signal');
     let lockMinScore = Number(C.AUTO_LOCK_MIN_SCORE || 4);
 
     // -------- ui helpers --------
@@ -256,11 +244,19 @@
         const data = await api('/sentiment', { symbol: sym });
         if(!data || data.status !== 'ok') throw new Error('bad sentiment');
 
+        const longLots = Number(data.longLots);
+        const shortLots = Number(data.shortLots);
+        const totalLots = (isFinite(longLots)?longLots:0) + (isFinite(shortLots)?shortLots:0);
+
+        // Normalize % from lots (prevents 100/100)
+        const longPct = (totalLots > 0) ? (longLots / totalLots) * 100 : Number(data.longPct);
+        const shortPct = (totalLots > 0) ? (shortLots / totalLots) * 100 : Number(data.shortPct);
+
         sentiment = {
-          longPct: Number(data.longPct),
-          shortPct: Number(data.shortPct),
-          longLots: Number(data.longLots),
-          shortLots: Number(data.shortLots),
+          longPct: isFinite(longPct) ? longPct : null,
+          shortPct: isFinite(shortPct) ? shortPct : null,
+          longLots: isFinite(longLots) ? longLots : null,
+          shortLots: isFinite(shortLots) ? shortLots : null,
           clients: (
             data.clients ??
             data.clientCount ??
@@ -287,25 +283,11 @@
       pill(ui.sentimentPill, ok ? 'blue' : 'red');
 
       if(ok){
-        // Normalize % from lots when possible (fixes 100% / 100% bug from bad API)
-        const longLots = isFinite(sentiment.longLots) ? sentiment.longLots : 0;
-        const shortLots = isFinite(sentiment.shortLots) ? sentiment.shortLots : 0;
-        const totalLots = longLots + shortLots;
+        ui.sentLong.textContent  = isFinite(sentiment.longPct)  ? (sentiment.longPct.toFixed(0) + '%')  : '—';
+        ui.sentShort.textContent = isFinite(sentiment.shortPct) ? (sentiment.shortPct.toFixed(0) + '%') : '—';
 
-        let longPct, shortPct;
-        if(totalLots > 0){
-          longPct = (longLots / totalLots) * 100;
-          shortPct = (shortLots / totalLots) * 100;
-        }else{
-          longPct = isFinite(sentiment.longPct) ? sentiment.longPct : NaN;
-          shortPct = isFinite(sentiment.shortPct) ? sentiment.shortPct : NaN;
-        }
-
-        if(ui.sentLong) ui.sentLong.textContent  = isFinite(longPct)  ? (longPct.toFixed(0) + '%')  : '—';
-        if(ui.sentShort) ui.sentShort.textContent = isFinite(shortPct) ? (shortPct.toFixed(0) + '%') : '—';
-
-        if(ui.sentLongLots) ui.sentLongLots.textContent  = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
-        if(ui.sentShortLots) ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
+        ui.sentLongLots.textContent  = 'Lots: ' + (isFinite(sentiment.longLots) ? sentiment.longLots.toFixed(2) : '—');
+        ui.sentShortLots.textContent = 'Lots: ' + (isFinite(sentiment.shortLots) ? sentiment.shortLots.toFixed(2) : '—');
 
         const clientsVal =
           (sentiment.clients !== null && sentiment.clients !== undefined && sentiment.clients !== '')
@@ -313,12 +295,12 @@
             : '—';
         if(ui.sentClients) ui.sentClients.textContent = clientsVal;
 
-        // Update IG donut immediately (if those IDs exist in HTML)
-        try{ applySentimentIG(longPct, shortPct, clientsVal); }catch(e){}
+        // Update donut
+        try{ applySentimentIG(sentiment.longPct, sentiment.shortPct, clientsVal); }catch(e){}
 
         if(ui.sentRule){
           ui.sentRule.value = sentimentRule;
-          if(ui.sentRuleText) ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
+          ui.sentRuleText.textContent = (sentimentRule === 'contrarian70') ? 'Contrarian ≥70%' : 'Info only';
           pill(ui.sentRulePill, sentimentRule === 'contrarian70' ? 'amber' : 'gray');
         }
       }else{
@@ -332,21 +314,9 @@
 
     function sentimentAllows(direction){
       if(sentimentRule !== 'contrarian70') return true;
-
-      // Use the computed % from lots if possible
-      const longLots = isFinite(sentiment.longLots) ? sentiment.longLots : NaN;
-      const shortLots = isFinite(sentiment.shortLots) ? sentiment.shortLots : NaN;
-      const totalLots = (isFinite(longLots) && isFinite(shortLots)) ? (longLots + shortLots) : NaN;
-      let lp = sentiment.longPct, sp = sentiment.shortPct;
-
-      if(isFinite(totalLots) && totalLots > 0){
-        lp = (longLots / totalLots) * 100;
-        sp = (shortLots / totalLots) * 100;
-      }
-
-      if(!isFinite(lp) || !isFinite(sp)) return true;
-      if(lp >= 70) return direction === 'SELL';
-      if(sp >= 70) return direction === 'BUY';
+      if(!isFinite(sentiment.longPct) || !isFinite(sentiment.shortPct)) return true;
+      if(sentiment.longPct >= 70) return direction === 'SELL';
+      if(sentiment.shortPct >= 70) return direction === 'BUY';
       return true;
     }
 
@@ -571,10 +541,7 @@
       return `${y}-${m}-${da}`;
     }
 
-    function timeToMinutes(hhmm){
-      const [h,m]=hhmm.split(':').map(n=>parseInt(n,10));
-      return h*60+m;
-    }
+    function timeToMinutes(hhmm){ const [h,m]=hhmm.split(':').map(n=>parseInt(n,10)); return h*60+m; }
 
     function computeYesterdayHighLow(bars){
       const map = new Map();
@@ -614,22 +581,14 @@
     function setSessionLevelsUI(price, yHigh, yLow, lon, ny){
       if(ui.yHigh) ui.yHigh.textContent = fmtPrice(yHigh);
       if(ui.yLow) ui.yLow.textContent = fmtPrice(yLow);
-
       if(ui.yHighDist) ui.yHighDist.textContent = 'Distance: ' + fmtPct(yHigh===null?Infinity:Math.abs(yHigh-price)/price);
       if(ui.yLowDist) ui.yLowDist.textContent  = 'Distance: ' + fmtPct(yLow===null?Infinity:Math.abs(price-yLow)/price);
 
       if(ui.lonRange) ui.lonRange.textContent = (lon.hi && lon.lo) ? (fmtPrice(lon.hi) + ' / ' + fmtPrice(lon.lo)) : '—';
-      // ✅ FIXED: ny.lo (not ny.hi twice)
       if(ui.nyRange) ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.lo)) : '—';
 
-      const lonMin = Math.min(
-        (lon.hi===null?Infinity:Math.abs(lon.hi-price)/price),
-        (lon.lo===null?Infinity:Math.abs(price-lon.lo)/price)
-      );
-      const nyMin  = Math.min(
-        (ny.hi===null?Infinity:Math.abs(ny.hi-price)/price),
-        (ny.lo===null?Infinity:Math.abs(price-ny.lo)/price)
-      );
+      const lonMin = Math.min((lon.hi===null?Infinity:Math.abs(lon.hi-price)/price),(lon.lo===null?Infinity:Math.abs(price-lon.lo)/price));
+      const nyMin  = Math.min((ny.hi===null?Infinity:Math.abs(ny.hi-price)/price),(ny.lo===null?Infinity:Math.abs(price-ny.lo)/price));
       if(ui.lonDist) ui.lonDist.textContent = 'Distance: ' + fmtPct(lonMin);
       if(ui.nyDist) ui.nyDist.textContent  = 'Distance: ' + fmtPct(nyMin);
     }
@@ -637,10 +596,8 @@
     function updateSessionUI(){
       if(ui.sessionState) ui.sessionState.textContent = sessionOn ? 'ON' : 'OFF';
       if(ui.dirState) ui.dirState.textContent = lockedDir ? (lockedDir + ' ONLY 🔒') : '—';
-
       pill(ui.sessionPill, sessionOn ? 'green' : 'amber');
       pill(ui.dirPill, lockedDir ? (lockedDir === 'BUY' ? 'green' : 'red') : 'amber');
-
       if(ui.start) ui.start.disabled = sessionOn;
       if(ui.end) ui.end.disabled = !sessionOn;
     }
@@ -653,7 +610,6 @@
       else { ui.decisionText.textContent = '⛔ NO TRADE'; ui.decisionText.style.color = '#E5E7EB'; }
 
       ui.decisionReason.textContent = reason;
-
       if(ui.scoreVal) ui.scoreVal.textContent = score + '/4';
       pill(ui.scorePill, score >= 4 ? 'green' : score === 3 ? 'amber' : 'red');
     }
@@ -662,18 +618,13 @@
       if(ui.priceNow) ui.priceNow.textContent = fmtPrice(price);
       if(ui.supLevel) ui.supLevel.textContent = fmtPrice(sup);
       if(ui.resLevel) ui.resLevel.textContent = fmtPrice(res);
-
       if(ui.supDist) ui.supDist.textContent = 'Distance: ' + fmtPct(sup===null?Infinity:Math.abs(price-sup)/price);
       if(ui.resDist) ui.resDist.textContent = 'Distance: ' + fmtPct(res===null?Infinity:Math.abs(res-price)/price);
-
       const loc = locationStatus(price, sup, res, lvlPct);
-
       if(ui.locState) ui.locState.textContent = loc.loc;
       pill(ui.locPill, loc.cls);
-
       if(ui.levelState) ui.levelState.textContent = loc.loc;
       pill(ui.levelPill, loc.cls);
-
       return loc;
     }
 
@@ -698,55 +649,41 @@
     function updateABUI(){
       if(ui.softAlerts){
         ui.softAlerts.value = softAlertsOn ? 'on' : 'off';
+        if(ui.softCooldown) ui.softCooldown.value = String(softCooldownSec);
       }
-      if(ui.softCooldown){
-        ui.softCooldown.value = String(softCooldownSec);
-      }
-
       if(ui.autoLock){
         ui.autoLock.value = autoLockOn ? 'on' : 'off';
+        if(ui.lockRule) ui.lockRule.value = lockRule;
+        if(ui.lockModeText) ui.lockModeText.textContent = autoLockOn ? 'On' : 'Off';
+        pill(ui.lockPill, autoLockOn ? 'green' : 'amber');
       }
-      if(ui.lockRule){
-        ui.lockRule.value = lockRule;
-      }
-      if(ui.lockModeText) ui.lockModeText.textContent = autoLockOn ? 'On' : 'Off';
-      pill(ui.lockPill, autoLockOn ? 'green' : 'amber');
-
       if(ui.minScore){
         ui.minScore.value = String(softMinScore);
+        if(ui.levelAlerts) ui.levelAlerts.value = levelAlertsOn ? 'on' : 'off';
       }
-      if(ui.levelAlerts){
-        ui.levelAlerts.value = levelAlertsOn ? 'on' : 'off';
-      }
-
       if(ui.lockMinScore){
         ui.lockMinScore.value = String(lockMinScore);
+        if(ui.lockStateText) ui.lockStateText.textContent = lockedDir ? ('Yes ('+lockedDir+')') : 'No';
       }
-      if(ui.lockStateText) ui.lockStateText.textContent = lockedDir ? ('Yes ('+lockedDir+')') : 'No';
-
       if(ui.abHint){
-        ui.abHint.textContent = autoLockOn
-          ? 'Tip: Start Session → wait for first clean signal → direction locks.'
-          : 'Auto-lock is OFF. You can flip direction, but be careful.';
+        ui.abHint.textContent = autoLockOn ? 'Tip: Start Session → wait for first clean signal → direction locks.' : 'Auto-lock is OFF. You can flip direction, but be careful.';
       }
     }
 
     function updateNewsUI(){
       if(!ui.newsPre) return;
-
       ui.newsPre.value = String(news.pre||60);
-      ui.newsPost.value = String(news.post||60);
-      ui.newsLabel.value = news.label || '';
-      ui.newsEvent.value = news.dtLocal || '';
-      ui.newsAuto.value = newsAuto ? 'on' : 'off';
+      if(ui.newsPost) ui.newsPost.value = String(news.post||60);
+      if(ui.newsLabel) ui.newsLabel.value = news.label || '';
+      if(ui.newsEvent) ui.newsEvent.value = news.dtLocal || '';
+      if(ui.newsAuto) ui.newsAuto.value = newsAuto ? 'on' : 'off';
 
       const locked = isNewsLockedNow();
       if(ui.newsLockState) ui.newsLockState.textContent = locked ? 'ON' : 'OFF';
       pill(ui.newsPill, locked ? 'red' : 'green');
-
       if(ui.newsHint){
         ui.newsHint.textContent = news.dtLocal
-          ? ('Saved: ' + (news.label||'Event') + ' @ ' + news.dtLocal.replace('T',' ') + ' (KE).')
+          ? ('Saved: ' + (news.label||'Event') + ' @ ' + String(news.dtLocal).replace('T',' ') + ' (KE).')
           : 'No event saved.';
       }
     }
@@ -754,7 +691,6 @@
     function updateUpcomingDropdown(){
       if(!ui.newsUpcoming) return;
       ui.newsUpcoming.innerHTML = '';
-
       if(!upcomingUsd.length){
         const opt = document.createElement('option');
         opt.value = '';
@@ -762,7 +698,6 @@
         ui.newsUpcoming.appendChild(opt);
         return;
       }
-
       upcomingUsd.forEach((ev, i)=>{
         const opt = document.createElement('option');
         opt.value = String(i);
@@ -877,18 +812,13 @@
 
         if(s.news) news = Object.assign(news, s.news);
         if(typeof s.newsAuto === 'boolean') newsAuto = s.newsAuto;
-
         if(typeof s.sentimentRule === 'string') sentimentRule = s.sentimentRule;
-
         if(typeof s.softAlertsOn === 'boolean') softAlertsOn = s.softAlertsOn;
         if(typeof s.softCooldownSec === 'number') softCooldownSec = s.softCooldownSec;
-
         if(typeof s.autoLockOn === 'boolean') autoLockOn = s.autoLockOn;
         if(typeof s.lockRule === 'string') lockRule = s.lockRule;
-
         if(typeof s.softMinScore === 'number') softMinScore = s.softMinScore;
         if(typeof s.levelAlertsOn === 'boolean') levelAlertsOn = s.levelAlertsOn;
-
         if(typeof s.lockMinScore === 'number') lockMinScore = s.lockMinScore;
       }catch(e){}
     }
@@ -905,27 +835,21 @@
     // GOLD STRENGTH CHART (REAL M15 CLOSES)
     // =========================
     function getChartSeriesFromM15(m15Bars){
-      // goldM15Long is newest-first in this app. We draw oldest→newest.
-      const bars = (m15Bars || []).slice().reverse();
-
-      // Default 8 bars = 2 hours. Config override: CHART_M15_BARS (4..24)
-      const nRaw = parseInt((C.CHART_M15_BARS || 8), 10);
-      const n = Math.max(4, Math.min(24, isFinite(nRaw) ? nRaw : 8));
-
+      const bars = (m15Bars || []).slice().reverse(); // oldest->newest
+      const nRaw = parseInt((C.CHART_M15_BARS || 24), 10); // 24 bars = 6 hours default
+      const n = Math.max(8, Math.min(96, isFinite(nRaw) ? nRaw : 24));
       const slice = bars.slice(Math.max(0, bars.length - n));
-      return slice.map(b => ({ t: b.datetime, v: Number(b.close) }));
+      return slice.map(b => ({ t: b.datetime, v: Number(b.close) })).filter(p=>isFinite(p.v));
     }
 
     function drawLineChart(canvas, series){
-      bindLateUI();
       if(!canvas) return;
-
       const ctx = canvas.getContext('2d');
       if(!ctx) return;
 
       const rect = canvas.getBoundingClientRect();
-      const cssW = rect.width || 320;
-      const cssH = rect.height || 120;
+      const cssW = Math.max(260, rect.width || 320);
+      const cssH = Math.max(120, rect.height || 140);
 
       const dpr = window.devicePixelRatio || 1;
       canvas.width  = Math.floor(cssW * dpr);
@@ -936,9 +860,7 @@
 
       if(!series || series.length < 2) return;
 
-      const vals = series.map(p => p.v).filter(v => isFinite(v));
-      if(vals.length < 2) return;
-
+      const vals = series.map(p => p.v);
       const minV = Math.min(...vals);
       const maxV = Math.max(...vals);
       const pad = (maxV - minV) * 0.15 || 1;
@@ -954,12 +876,12 @@
 
       const first = series[0].v;
       const last  = series[series.length-1].v;
-      const up = last > first;
+      const up = last >= first;
 
-      // Soft grid
-      ctx.globalAlpha = 0.18;
+      // Grid (soft)
+      ctx.globalAlpha = 0.15;
       ctx.lineWidth = 1;
-      ctx.strokeStyle = (themeMode === 'light') ? '#CBD5E1' : '#334155';
+      ctx.strokeStyle = '#94A3B8';
       for(let i=1;i<=3;i++){
         const yy = (H/4)*i;
         ctx.beginPath();
@@ -985,12 +907,12 @@
       ctx.lineTo(W, H);
       ctx.lineTo(0, H);
       ctx.closePath();
-      ctx.globalAlpha = 0.12;
+      ctx.globalAlpha = 0.10;
       ctx.fillStyle = up ? '#10B981' : '#EF4444';
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // Labels
+      // UI labels
       const chgPct = ((last - first) / first) * 100;
       if(ui.chartTrend) ui.chartTrend.textContent = up ? 'UP' : 'DOWN';
       if(ui.chartNowVal) ui.chartNowVal.textContent = isFinite(last) ? last.toFixed(2) : '—';
@@ -1003,19 +925,22 @@
       drawLineChart(ui.goldChart, series);
     }
 
-    // -------- refresh (ONE clean function) --------
+    // -------- main refresh --------
     async function refresh(){
       setConn(true);
 
       const th = parseFloat(ui.threshold?.value || '0.0006');
       const lvlPct = parseFloat(ui.levelDistance?.value || '0.0015');
-      const goldM15BarsCount = 220;
 
       try{
         const [eurTrend, goldM15Long] = await Promise.all([
           tdTimeSeries(C.USD_PROXY_SYMBOL || 'EUR/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
-          tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', goldM15BarsCount),
+          tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', 220),
         ]);
+
+        // Chart render (NEW)
+        window.__LAST_M15 = goldM15Long;
+        renderGoldStrengthFromM15(goldM15Long);
 
         const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
 
@@ -1024,22 +949,17 @@
         const goldOldest = goldM15Long[n].close;
         const goldPct = pctMove(goldNewest, goldOldest);
 
-        // Chart
-        window.__LAST_M15 = goldM15Long;
-        renderGoldStrengthFromM15(goldM15Long);
-
         const usd = classifyUSD(eurPct, th);
         const gold = classifyGold(goldPct, usd.dir, th);
 
         if(ui.usdState) ui.usdState.textContent = usd.state;
         if(ui.usdDetail) ui.usdDetail.textContent = 'EURUSD (60m): ' + fmtPct(eurPct);
-
         if(ui.goldState) ui.goldState.textContent = gold.state;
         if(ui.goldDetail) ui.goldDetail.textContent = 'XAUUSD (60m): ' + fmtPct(goldPct);
 
         const price = goldNewest;
 
-        // Levels
+        // Key levels from M15 swings + Yesterday + Sessions
         const swM15 = findSwings(goldM15Long.slice(0, 160), 3);
         const highs = swM15.swingsHigh;
         const lows  = swM15.swingsLow;
@@ -1053,13 +973,8 @@
         const dNow = parseISOish(goldM15Long[0].datetime);
         const todayKey = dNow ? dayKeyTZ(dNow) : null;
 
-        const lon = todayKey
-          ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180))
-          : {hi:null,lo:null};
-
-        const ny  = todayKey
-          ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180))
-          : {hi:null,lo:null};
+        const lon = todayKey ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};
+        const ny  = todayKey ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};
 
         setSessionLevelsUI(price, y.yHigh, y.yLow, lon, ny);
 
@@ -1074,17 +989,15 @@
         const near = pickNearest(price, supports, resistances);
         const loc = setLevelUI(price, near.sup, near.res, lvlPct);
 
-        // Score
         let score = 0;
         if(usd.state !== 'UNCLEAR') score++;
         if(gold.ok) score++;
         if(loc.okDir !== null) score++;
-
-        const proposed = usd.dir; // BUY/SELL from USD proxy
+        const proposed = usd.dir;
         const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);
         if(sessionOk) score++;
 
-        // Auto-lock on bias
+        // Auto-lock (bias)
         if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){
           if(score >= lockMinScore && usd.state !== 'UNCLEAR'){
             lockedDir = proposed;
@@ -1094,15 +1007,12 @@
           }
         }
 
-        // Decision
         let decision = 'NO';
         let reason = 'Waiting for clean story: USD + gold confirm + at a key level.';
 
-        const newsLocked = isNewsLockedNow();
-
         if(!sessionOn){
           reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';
-        } else if(newsLocked){
+        } else if(isNewsLockedNow()){
           decision = 'NO';
           reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';
         } else if(lockedDir && proposed && lockedDir !== proposed){
@@ -1122,7 +1032,7 @@
             : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.';
         }
 
-        // Auto-lock on first clean signal
+        // Auto-lock (signal)
         if(sessionOn && autoLockOn && !lockedDir && lockRule === 'signal'){
           if(score >= lockMinScore && (decision === 'BUY' || decision === 'SELL')){
             lockedDir = decision;
@@ -1140,7 +1050,7 @@
           }
         }
 
-        // Ticket only when 4/4 & actionable
+        // Ticket (only clean 4/4)
         let ticket = null;
         if((decision === 'BUY' || decision === 'SELL') && score >= 4){
           ticket = buildTicket(decision, price, near.sup, near.res);
@@ -1150,9 +1060,10 @@
 
         setDecision(decision, reason, score);
 
-        // Alerts
-        maybeAlert(decision, loc.loc, price);
+        // Soft alert + Notification
+        const newsLocked = isNewsLockedNow();
         softAlert(decision, reason, score, loc.loc, newsLocked);
+        maybeAlert(decision, loc.loc, price);
 
         if(ui.lastUpdate) ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();
         save();
@@ -1179,7 +1090,6 @@
       save();
     }
 
-    // ---------- init ----------
     if(ui.today) ui.today.textContent = new Date().toLocaleDateString();
     const jsStatus = $('jsStatus'); if(jsStatus) jsStatus.textContent = 'JS: loaded ✅';
 
@@ -1191,16 +1101,12 @@
     setAuto();
 
     applyTheme(themeMode);
-    on(ui.themeBtn,'click', ()=> {
-      applyTheme(themeMode === 'light' ? 'dark' : 'light');
-      try{ renderGoldStrengthFromM15(window.__LAST_M15 || []); }catch(e){}
-    });
-
+    on(ui.themeBtn,'click', ()=> applyTheme(themeMode === 'light' ? 'dark' : 'light'));
     setupInstall();
     registerSW();
     on(ui.resetBtn,'click', ()=> nukeCachesAndSW());
 
-    // If you ever get stuck on an older version, open ?reset=1
+    // If stuck on old SW cache: ?reset=1
     try{
       const u = new URL(location.href);
       if(u.searchParams.get('reset') === '1'){
@@ -1260,7 +1166,7 @@
       updateAlertsUI(); save();
     });
 
-    // News
+    // News UI
     on(ui.newsPre,'change', ()=>{ news.pre = parseInt(ui.newsPre.value||'60',10); updateNewsUI(); save(); });
     on(ui.newsPost,'change', ()=>{ news.post = parseInt(ui.newsPost.value||'60',10); updateNewsUI(); save(); });
 
@@ -1286,7 +1192,7 @@
       if(upcomingUsd[i]) applyEvent(upcomingUsd[i]);
     });
 
-    // Resize chart
+    // Re-render chart on resize
     window.addEventListener('resize', ()=> {
       try{ renderGoldStrengthFromM15(window.__LAST_M15 || []); }catch(e){}
     });
@@ -1294,7 +1200,7 @@
     autoLoadNews(false);
     bindLateUI();
 
-    // Sentiment
+    // Sentiment timers
     fetchSentiment();
     const ssec = parseInt(C.SENTIMENT_REFRESH_SECONDS || 120, 10);
     if(ssec){
@@ -1322,8 +1228,8 @@
       window.open('https://www.xm.com/', '_blank');
     });
 
-    // First refresh
     refresh();
+
   }catch(e){
     console.error(e);
     const s=document.getElementById('jsStatus'); if(s) s.textContent='JS error ❌';
@@ -1331,9 +1237,7 @@
 })();
 
 
-// =====================================================
-// Sentiment IG-style (visual only) — SAFE if IDs missing
-// =====================================================
+// --- Sentiment IG-style (visual only) ---
 function _pct(n){
   const x = Number(n);
   if(!isFinite(x)) return 0;
@@ -1377,7 +1281,7 @@ function applySentimentIG(longPct, shortPct, clients){
   }
 }
 
-// Fallback mirror: reads your sentLong/sentShort text
+// Fallback mirror (keeps donut updated)
 function applySentimentIGFallback(){
   try{
     const L = document.getElementById('sentLong')?.textContent || '';
