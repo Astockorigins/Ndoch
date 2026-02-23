@@ -66,10 +66,6 @@ if(ui.closeGuide && ui.guideModal){
     resetBtn: $('resetBtn'),
     themeColorMeta: $('themeColorMeta'),
 
-guideBtn: $('guideBtn'),
-guideModal: $('guideModal'),
-closeGuide: $('closeGuide'),
-
     // A+B
     softAlerts: $('softAlerts'),
     softCooldown: $('softCooldown'),
@@ -976,28 +972,6 @@ closeGuide: $('closeGuide'),
     updateSessionUI();
     save();
   }
-
-
-
-
-// --- Guide Modal (safe open/close) ---
-on(ui.guideBtn, 'click', () => {
-  if(!ui.guideModal) return;
-  ui.guideModal.classList.add('open');
-});
-
-on(ui.guideCloseBtn, 'click', () => {
-  if(!ui.guideModal) return;
-  ui.guideModal.classList.remove('open');
-});
-
-// Tap outside sheet to close
-on(ui.guideModal, 'click', (e) => {
-  if(e.target === ui.guideModal){
-    ui.guideModal.classList.remove('open');
-  }
-});
-
 
 
   ui.today.textContent = new Date().toLocaleDateString();

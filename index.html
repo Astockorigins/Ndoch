@@ -138,49 +138,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
 
 <b id="sentClients">—</b>
 
-<style>
-/* --- Guide Modal (isolated + safe) --- */
-#guideModal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  z-index:999999;
-  display:none;
-  pointer-events:none; /* important: do not block clicks when closed */
-}
-#guideModal.open{
-  display:block;
-  pointer-events:auto;
-}
-#guideSheet{
-  background:var(--card);
-  color:var(--text);
-  border:1px solid var(--cardBorder);
-  border-radius:18px;
-  box-shadow:0 20px 60px rgba(0,0,0,.35);
-  max-width:720px;
-  margin:6vh auto;
-  max-height:88vh;
-  overflow:auto;
-  padding:16px;
-}
-#guideCloseBtn{
-  min-width:auto;
-  flex:0;
-  padding:8px 12px;
-  border-radius:999px;
-}
-#guideText{
-  white-space:pre-wrap;
-  font-family:system-ui;
-  font-size:13px;
-  line-height:1.55;
-  margin:12px 0 0;
-  color:var(--text);
-  opacity:.92;
-}
-</style>
-
 
   </style>
 </head>
@@ -198,7 +155,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
           <button type="button" id="themeBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🌙 Dark</button>
           <button type="button" id="installBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px;display:none">⬇️ Install</button>
           <button type="button" id="resetBtn" style="min-width:auto;flex:0;padding:8px 12px;border-radius:999px">🧹 Fix</button>
-           <button type="button" id="guideBtn">📘 Guide</button>
         </div>
       </div>
 
