@@ -913,7 +913,7 @@ if(ui.chartChgVal) ui.chartChgVal.textContent = isFinite(chgPct) ? (chgPct.toFix
 if(ui.chartPill) pill(ui.chartPill, up ? 'green' : 'red');
 }
 
-
+async function refresh(){
 
 async function refresh(){
   setConn(true);
