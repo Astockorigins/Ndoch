@@ -45,3 +45,6 @@ window.CONFIG = {
   TICKET_RR: 2.0,
   TICKET_SL_BUFFER_PCT: 0.0008 // 0.08% buffer beyond level
 };
+
+CHART_M15_BARS: 8, // 4=1hr, 8=2hr, 12=3hr, 16=4hr
+
