@@ -831,93 +831,92 @@ save();
 }
 
 /* =========================
-GOLD STRENGTH CHART (REAL M15)
-Paste ABOVE refresh()
-========================= */
+   GOLD STRENGTH CHART (REAL M15)
+   Paste ABOVE refresh()
+   ========================= */
 function getChartSeriesFromM15(m15Bars){
-// m15Bars is newest-first in this app. We draw oldest→newest.
-const bars = (m15Bars || []).slice().reverse();
+  // m15Bars is newest-first in this app. We draw oldest→newest.
+  const bars = (m15Bars || []).slice().reverse();
 
-// Default 8 bars = 2 hours. Can be overridden by CONFIG.CHART_M15_BARS
-const nRaw = parseInt((C.CHART_M15_BARS || 8), 10);
-const n = Math.max(4, Math.min(24, isFinite(nRaw) ? nRaw : 8));
+  // Default 8 bars = 2 hours. Can be overridden by CONFIG.CHART_M15_BARS
+  const nRaw = parseInt((C.CHART_M15_BARS || 8), 10);
+  const n = Math.max(4, Math.min(24, isFinite(nRaw) ? nRaw : 8));
 
-const slice = bars.slice(Math.max(0, bars.length - n));
-return slice.map(b => ({ t: b.datetime, v: Number(b.close) }));
+  const slice = bars.slice(Math.max(0, bars.length - n));
+  return slice.map(b => ({ t: b.datetime, v: Number(b.close) }));
 }
 
 function drawLineChart(canvas, series){
-if(!canvas) return;
-const ctx = canvas.getContext('2d');
-if(!ctx) return;
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(!ctx) return;
 
-const rect = canvas.getBoundingClientRect();
-const cssW = rect.width || 320;
-const cssH = 120;
+  const rect = canvas.getBoundingClientRect();
+  const cssW = rect.width || 320;
+  const cssH = 120;
 
-const dpr = window.devicePixelRatio || 1;
-canvas.width  = Math.floor(cssW * dpr);
-canvas.height = Math.floor(cssH * dpr);
-ctx.setTransform(dpr,0,0,dpr,0,0);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
 
-ctx.clearRect(0,0,cssW,cssH);
+  ctx.clearRect(0,0,cssW,cssH);
 
-if(!series || series.length < 2) return;
+  if(!series || series.length < 2) return;
 
-const vals = series.map(p => p.v).filter(v => isFinite(v));
-if(vals.length < 2) return;
+  const vals = series.map(p => p.v).filter(v => isFinite(v));
+  if(vals.length < 2) return;
 
-const minV = Math.min(...vals);
-const maxV = Math.max(...vals);
-const pad = (maxV - minV) * 0.15 || 1;
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const pad = (maxV - minV) * 0.15 || 1;
 
-const min = minV - pad;
-const max = maxV + pad;
+  const min = minV - pad;
+  const max = maxV + pad;
 
-const W = cssW;
-const H = cssH;
+  const W = cssW;
+  const H = cssH;
 
-const x = (i)=> (i/(series.length-1)) * W;
-const y = (v)=> H - ((v - min)/(max - min)) * H;
+  const x = (i)=> (i/(series.length-1)) * W;
+  const y = (v)=> H - ((v - min)/(max - min)) * H;
 
-const first = series[0].v;
-const last  = series[series.length-1].v;
-const up = last > first;
+  const first = series[0].v;
+  const last  = series[series.length-1].v;
+  const up = last > first;
 
-// Line
-ctx.beginPath();
-for(let i=0;i<series.length;i++){
-const xi = x(i);
-const yi = y(series[i].v);
-if(i===0) ctx.moveTo(xi, yi);
-else ctx.lineTo(xi, yi);
-}
-ctx.lineWidth = 3;
-ctx.strokeStyle = up ? '#10B981' : '#EF4444';
-ctx.stroke();
+  // Line
+  ctx.beginPath();
+  for(let i=0;i<series.length;i++){
+    const xi = x(i);
+    const yi = y(series[i].v);
+    if(i===0) ctx.moveTo(xi, yi);
+    else ctx.lineTo(xi, yi);
+  }
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = up ? '#10B981' : '#EF4444';
+  ctx.stroke();
 
-// Soft fill under line
-ctx.lineTo(W, H);
-ctx.lineTo(0, H);
-ctx.closePath();
-ctx.globalAlpha = 0.12;
-ctx.fillStyle = up ? '#10B981' : '#EF4444';
-ctx.fill();
-ctx.globalAlpha = 1;
+  // Soft fill under line
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = up ? '#10B981' : '#EF4444';
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
-// Labels
-const chgPct = ((last - first) / first) * 100;
-if(ui.chartTrend) ui.chartTrend.textContent = up ? 'UP' : 'DOWN';
-if(ui.chartNowVal) ui.chartNowVal.textContent = isFinite(last) ? last.toFixed(2) : '—';
-if(ui.chartChgVal) ui.chartChgVal.textContent = isFinite(chgPct) ? (chgPct.toFixed(2) + '%') : '—';
-if(ui.chartPill) pill(ui.chartPill, up ? 'green' : 'red');
+  // Labels
+  const chgPct = ((last - first) / first) * 100;
+  if(ui.chartTrend) ui.chartTrend.textContent = up ? 'UP' : 'DOWN';
+  if(ui.chartNowVal) ui.chartNowVal.textContent = isFinite(last) ? last.toFixed(2) : '—';
+  if(ui.chartChgVal) ui.chartChgVal.textContent = isFinite(chgPct) ? (chgPct.toFixed(2) + '%') : '—';
+  if(ui.chartPill) pill(ui.chartPill, up ? 'green' : 'red');
 }
 
 function renderGoldStrengthFromM15(m15Bars){
-const series = getChartSeriesFromM15(m15Bars);
-drawLineChart(ui.goldChart, series);
+  const series = getChartSeriesFromM15(m15Bars);
+  drawLineChart(ui.goldChart, series);
 }
-
 
 async function refresh(){
 setConn(true);
@@ -935,10 +934,11 @@ const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
 
 const [eurTrend, goldM15Long] = await Promise.all([ ... ]);
 const goldNewest = goldM15Long[0].close;
-window.__LAST_M15 = goldM15Long;
-renderGoldStrengthFromM15(goldM15Long);
 const goldOldest = goldM15Long[n].close;
 const goldPct = pctMove(goldNewest, goldOldest);
+
+window.__LAST_M15 = goldM15Long;
+renderGoldStrengthFromM15(goldM15Long);
 
 const usd = classifyUSD(eurPct, th);  
   const gold = classifyGold(goldPct, usd.dir, th);  
