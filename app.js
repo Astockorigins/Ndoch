@@ -913,161 +913,149 @@ if(ui.chartChgVal) ui.chartChgVal.textContent = isFinite(chgPct) ? (chgPct.toFix
 if(ui.chartPill) pill(ui.chartPill, up ? 'green' : 'red');
 }
 
-async function refresh(){
+function renderGoldStrengthFromM15(m15Bars){
+const series = getChartSeriesFromM15(m15Bars);
+drawLineChart(ui.goldChart, series);
+}
+
 
 async function refresh(){
-  setConn(true);
+setConn(true);
+const th = parseFloat(ui.threshold.value || '0.0006');
+const lvlPct = parseFloat(ui.levelDistance.value || '0.0015');
+try{
+const [eurTrend, goldM15Long] = await Promise.all([
+tdTimeSeries(C.USD_PROXY_SYMBOL || 'EUR/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
+tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', 220),
+]);
 
-  const th = parseFloat(ui.threshold?.value || '0.0006');
-  const lvlPct = parseFloat(ui.levelDistance?.value || '0.0015');
+const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);  
 
-  try{
-    const [eurTrend, goldM15Long] = await Promise.all([
-      tdTimeSeries(C.USD_PROXY_SYMBOL || 'EUR/USD', C.TREND_INTERVAL || '5min', C.TREND_LOOKBACK_BARS || 12),
-      tdTimeSeries(C.GOLD_SYMBOL || 'XAU/USD', C.LEVELS_M15_INTERVAL || '15min', 220),
-    ]);
+  const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
 
-    // % move for EURUSD (USD pressure proxy)
-    const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
+const [eurTrend, goldM15Long] = await Promise.all([ ... ]);
+const goldNewest = goldM15Long[0].close;
+window.__LAST_M15 = goldM15Long;
+renderGoldStrengthFromM15(goldM15Long);
+const goldOldest = goldM15Long[n].close;
+const goldPct = pctMove(goldNewest, goldOldest);
 
-    // Gold 60m move from M15 bars (default 4 bars)
-    const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
-    const goldNewest = goldM15Long[0].close;
-    const goldOldest = goldM15Long[n].close;
-    const goldPct = pctMove(goldNewest, goldOldest);
+const usd = classifyUSD(eurPct, th);  
+  const gold = classifyGold(goldPct, usd.dir, th);  
 
-    // Chart (real M15 closes) — no extra API calls
-    window.__LAST_M15 = goldM15Long;
-    renderGoldStrengthFromM15(goldM15Long);
+  ui.usdState.textContent = usd.state;  
+  ui.usdDetail.textContent = 'EURUSD (60m): ' + fmtPct(eurPct);  
+  ui.goldState.textContent = gold.state;  
+  ui.goldDetail.textContent = 'XAUUSD (60m): ' + fmtPct(goldPct);  
 
-    const usd = classifyUSD(eurPct, th);
-    const gold = classifyGold(goldPct, usd.dir, th);
+  const price = goldNewest;  
 
-    ui.usdState.textContent = usd.state;
-    ui.usdDetail.textContent = 'EURUSD (60m): ' + fmtPct(eurPct);
-    ui.goldState.textContent = gold.state;
-    ui.goldDetail.textContent = 'XAUUSD (60m): ' + fmtPct(goldPct);
+  const swM15 = findSwings(goldM15Long.slice(0, 160), 3);  
+  const highs = swM15.swingsHigh;  
+  const lows  = swM15.swingsLow;  
 
-    const price = goldNewest;
+  const clusterBand = 0.0010;  
+  let resistances = clusterLevels(highs, price, clusterBand);  
+  let supports    = clusterLevels(lows,  price, clusterBand);  
 
-    // Key levels from M15 swings + Yesterday + Sessions (LITE)
-    const swM15 = findSwings(goldM15Long.slice(0, 160), 3);
-    const highs = swM15.swingsHigh;
-    const lows  = swM15.swingsLow;
+  const y = computeYesterdayHighLow(goldM15Long);  
 
-    const clusterBand = 0.0010;
-    let resistances = clusterLevels(highs, price, clusterBand);
-    let supports    = clusterLevels(lows,  price, clusterBand);
+  const dNow = parseISOish(goldM15Long[0].datetime);  
+  const todayKey = dNow ? dayKeyTZ(dNow) : null;  
 
-    const y = computeYesterdayHighLow(goldM15Long);
+  const lon = todayKey ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180)) : {hi:null,lo:null};  
+  const ny  = todayKey ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180)) : {hi:null,lo:null};  
 
-    const dNow = parseISOish(goldM15Long[0].datetime);
-    const todayKey = dNow ? dayKeyTZ(dNow) : null;
+  setSessionLevelsUI(price, y.yHigh, y.yLow, lon, ny);  
 
-    const lon = todayKey
-      ? computeSessionRange(goldM15Long, todayKey, C.LONDON_START || "08:00", Number(C.LONDON_MINUTES||180))
-      : {hi:null,lo:null};
+  if(isFinite(y.yHigh)) resistances.push(y.yHigh);  
+  if(isFinite(lon.hi))  resistances.push(lon.hi);  
+  if(isFinite(ny.hi))   resistances.push(ny.hi);  
 
-    const ny  = todayKey
-      ? computeSessionRange(goldM15Long, todayKey, C.NY_START || "13:30", Number(C.NY_MINUTES||180))
-      : {hi:null,lo:null};
+  if(isFinite(y.yLow)) supports.push(y.yLow);  
+  if(isFinite(lon.lo)) supports.push(lon.lo);  
+  if(isFinite(ny.lo))  supports.push(ny.lo);  
 
-    setSessionLevelsUI(price, y.yHigh, y.yLow, lon, ny);
+  const near = pickNearest(price, supports, resistances);  
+  const loc = setLevelUI(price, near.sup, near.res, lvlPct);  
 
-    if(isFinite(y.yHigh)) resistances.push(y.yHigh);
-    if(isFinite(lon.hi))  resistances.push(lon.hi);
-    if(isFinite(ny.hi))   resistances.push(ny.hi);
+  let score = 0;  
+  if(usd.state !== 'UNCLEAR') score++;  
+  if(gold.ok) score++;  
+  if(loc.okDir !== null) score++;  
+  const proposed = usd.dir;  
+  const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);  
+  if(sessionOk) score++;  
 
-    if(isFinite(y.yLow)) supports.push(y.yLow);
-    if(isFinite(lon.lo)) supports.push(lon.lo);
-    if(isFinite(ny.lo))  supports.push(ny.lo);
+  if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){  
+    if(score >= lockMinScore && usd.state !== 'UNCLEAR'){  
+      lockedDir = proposed;  
+      updateSessionUI();  
+      updateABUI();  
+      toast('🔒 Direction locked: ' + lockedDir);  
+    }  
+  }  
 
-    const near = pickNearest(price, supports, resistances);
-    const loc = setLevelUI(price, near.sup, near.res, lvlPct);
+  let decision = 'NO';  
+  let reason = 'Waiting for clean story: USD + gold confirm + at a key level.';  
 
-    // Score
-    let score = 0;
-    if(usd.state !== 'UNCLEAR') score++;
-    if(gold.ok) score++;
-    if(loc.okDir !== null) score++;
+  if(!sessionOn){  
+    reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';  
+  } else if(isNewsLockedNow()){  
+    decision = 'NO';  
+    reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';  
+  } else if(lockedDir && proposed && lockedDir !== proposed){  
+    reason = 'Direction locked to ' + lockedDir + ' ONLY. Market bias disagrees. End session or wait.';  
+  } else if(usd.state === 'UNCLEAR'){  
+    reason = 'USD pressure unclear (EURUSD not moving enough). Wait.';  
+  } else if(!gold.ok){  
+    reason = 'Gold not confirming USD bias (choppy). Wait for a clean push.';  
+  } else if(loc.okDir === null){  
+    reason = 'Price is MID-RANGE (not at Support/Resistance). Wait.';  
+  } else if(loc.okDir !== proposed){  
+    reason = 'At ' + loc.loc + ', but direction doesn’t match. No counter-trend.';  
+  } else {  
+    decision = proposed;  
+    reason = (proposed === 'BUY')  
+      ? 'USD weak + gold bullish + at SUPPORT. Look for BUY setups only.'  
+      : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.';  
+  }  
 
-    const proposed = usd.dir;
-    const sessionOk = sessionOn && (lockedDir ? lockedDir === proposed : true);
-    if(sessionOk) score++;
+  if(sessionOn && autoLockOn && !lockedDir && lockRule === 'signal'){  
+    if(score >= lockMinScore && (decision === 'BUY' || decision === 'SELL')){  
+      lockedDir = decision;  
+      updateSessionUI();  
+      updateABUI();  
+      toast('🔒 Direction locked: ' + lockedDir);  
+    }  
+  }  
 
-    // Auto-lock on bias
-    if(sessionOn && autoLockOn && !lockedDir && lockRule === 'bias' && proposed){
-      if(score >= lockMinScore && usd.state !== 'UNCLEAR'){
-        lockedDir = proposed;
-        updateSessionUI();
-        updateABUI();
-        toast('🔒 Direction locked: ' + lockedDir);
-      }
-    }
+  if(decision === 'BUY' || decision === 'SELL'){  
+    if(!sentimentAllows(decision)){  
+      decision = 'NO';  
+      reason = 'Sentiment filter blocked this direction (crowded side).';  
+    }  
+  }  
 
-    // Decision
-    let decision = 'NO';
-    let reason = 'Waiting for clean story: USD + gold confirm + at a key level.';
+  let ticket = null;  
+  if((decision === 'BUY' || decision === 'SELL') && score >= 4){  
+    ticket = buildTicket(decision, price, near.sup, near.res);  
+  }  
+  window.__LAST_TICKET = ticket;  
+  setTicketUI(ticket);  
 
-    if(!sessionOn){
-      reason = 'Session is OFF. Tap “Start Session” when you are ready to trade.';
-    } else if(isNewsLockedNow()){
-      decision = 'NO';
-      reason = 'NEWS LOCK is ON (' + (news.label||'High-impact USD news') + '). Wait until the block window ends.';
-    } else if(lockedDir && proposed && lockedDir !== proposed){
-      reason = 'Direction locked to ' + lockedDir + ' ONLY. Market bias disagrees. End session or wait.';
-    } else if(usd.state === 'UNCLEAR'){
-      reason = 'USD pressure unclear (EURUSD not moving enough). Wait.';
-    } else if(!gold.ok){
-      reason = 'Gold not confirming USD bias (choppy). Wait for a clean push.';
-    } else if(loc.okDir === null){
-      reason = 'Price is MID-RANGE (not at Support/Resistance). Wait.';
-    } else if(loc.okDir !== proposed){
-      reason = 'At ' + loc.loc + ', but direction doesn’t match. No counter-trend.';
-    } else {
-      decision = proposed;
-      reason = (proposed === 'BUY')
-        ? 'USD weak + gold bullish + at SUPPORT. Look for BUY setups only.'
-        : 'USD strong + gold bearish + at RESISTANCE. Look for SELL setups only.';
-    }
+  setDecision(decision, reason, score);  
+  maybeAlert(decision, loc.loc, price);  
 
-    // Auto-lock on first clean signal
-    if(sessionOn && autoLockOn && !lockedDir && lockRule === 'signal'){
-      if(score >= lockMinScore && (decision === 'BUY' || decision === 'SELL')){
-        lockedDir = decision;
-        updateSessionUI();
-        updateABUI();
-        toast('🔒 Direction locked: ' + lockedDir);
-      }
-    }
+  ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();  
+  save();  
+}catch(err){  
+  console.error(err);  
+  setConn(false);  
+  setDecision('NO', 'Refresh failed. Check internet, Worker, or rate limits.', 0);  
+  ui.lastUpdate.textContent = 'Last update: —';  
+}
 
-    // Sentiment filter
-    if(decision === 'BUY' || decision === 'SELL'){
-      if(!sentimentAllows(decision)){
-        decision = 'NO';
-        reason = 'Sentiment filter blocked this direction (crowded side).';
-      }
-    }
-
-    // Ticket only when clean (4/4)
-    let ticket = null;
-    if((decision === 'BUY' || decision === 'SELL') && score >= 4){
-      ticket = buildTicket(decision, price, near.sup, near.res);
-    }
-    window.__LAST_TICKET = ticket;
-    setTicketUI(ticket);
-
-    setDecision(decision, reason, score);
-    maybeAlert(decision, loc.loc, price);
-
-    ui.lastUpdate.textContent = 'Last update: ' + new Date().toLocaleString();
-    save();
-  }catch(err){
-    console.error(err);
-    setConn(false);
-    setDecision('NO', 'Refresh failed. Check internet, Worker, or rate limits.', 0);
-    ui.lastUpdate.textContent = 'Last update: —';
-  }
 }
 
 function startSession(){
