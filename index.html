@@ -205,15 +205,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
 
 <b id="sentClients">—</b>
 
-/* =========================
-   GOLD STRENGTH CHART STYLES
-   ========================= */
-#chartCard canvas{
-  border:1px solid var(--cardBorder);
-  border-radius:14px;
-  background:var(--soft);
-}
-
   </style>
 </head>
 
@@ -282,32 +273,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
         Trade only when USD is clear + Gold confirms + Price is at Support/Resistance + Session direction matches.
       </div>
     </div>
-
-<!-- =========================
-     GOLD STRENGTH (REAL M15)
-     Paste between Signal and A+B
-     ========================= -->
-<div class="card" id="chartCard">
-  <div class="row">
-    <div class="pill gray">📈 Gold Strength (M15)</div>
-    <div class="pill" id="chartPill">Trend: <b id="chartTrend">—</b></div>
-  </div>
-
-  <div class="sub" id="chartSub">Based on latest M15 candles (no extra API calls).</div>
-
-  <div style="margin-top:12px">
-    <canvas id="goldChart" height="120" style="width:100%;display:block"></canvas>
-  </div>
-
-  <div class="row" style="margin-top:10px">
-    <div class="pill">Now: <b id="chartNowVal">—</b></div>
-    <div class="pill">Change: <b id="chartChgVal">—</b></div>
-  </div>
-
-  <div class="tiny" style="margin-top:10px">
-    Strength glance tool. Your main 4/4 decision stays the final filter.
-  </div>
-</div>
 
 
     <!-- A + B -->
