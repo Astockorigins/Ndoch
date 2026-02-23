@@ -108,6 +108,33 @@ button:disabled{
   opacity:.5;
   cursor:not-allowed;
 }
+
+.btnRow{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:stretch;
+}
+
+/* Signal card: End Session full-width bar */
+#end{
+  flex: 0 0 100%;
+  width: 100%;
+  margin-top: 4px; /* adds separation from the top row */
+}
+
+/* News card: Auto-load button full-width bar */
+#loadNews{
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+#saveNews, #clearNews{
+  flex: 1 1 48%;
+  min-width: 140px;
+}
+
+
     input, select{width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--cardBorder);background:var(--soft);color:var(--text)}
     label{display:block;font-size:11px;opacity:.8;margin:8px 0 6px;color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
