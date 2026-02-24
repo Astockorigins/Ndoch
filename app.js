@@ -580,7 +580,7 @@ ui.yHighDist.textContent = 'Distance: ' + fmtPct(yHigh===null?Infinity:Math.abs(
 ui.yLowDist.textContent  = 'Distance: ' + fmtPct(yLow===null?Infinity:Math.abs(price-yLow)/price);
 
 ui.lonRange.textContent = (lon.hi && lon.lo) ? (fmtPrice(lon.hi) + ' / ' + fmtPrice(lon.lo)) : '—';  
-ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.hi) + '') : '—';  
+ui.nyRange.textContent  = (ny.hi && ny.lo) ? (fmtPrice(ny.hi) + ' / ' + fmtPrice(ny.lo)) : '—';
 
 const lonMin = Math.min((lon.hi===null?Infinity:Math.abs(lon.hi-price)/price),(lon.lo===null?Infinity:Math.abs(price-lon.lo)/price));  
 const nyMin  = Math.min((ny.hi===null?Infinity:Math.abs(ny.hi-price)/price),(ny.lo===null?Infinity:Math.abs(price-ny.lo)/price));  
@@ -838,7 +838,7 @@ const eurPct = pctMove(eurTrend[0].close, eurTrend[eurTrend.length-1].close);
 
   const n = Math.min(parseInt(C.GOLD_TREND_FROM_M15_BARS || 4, 10), goldM15Long.length - 1);
 
-const [eurTrend, goldM15Long] = await Promise.all([ ... ]);
+
 const goldNewest = goldM15Long[0].close;
 const goldOldest = goldM15Long[n].close;
 const goldPct = pctMove(goldNewest, goldOldest);
