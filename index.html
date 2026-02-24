@@ -61,79 +61,58 @@
     .k .v{font-size:14px;font-weight:800;margin-top:2px}
     .k .s{font-size:11px;opacity:.75;margin-top:4px;line-height:1.3;color:var(--muted)}
 
-   /* =========================
-   BUTTONS (theme-safe)
-   ========================= */
-button{
-  flex:1;
-  min-width:140px;
-  padding:12px;
-  border-radius:16px;
-  border:1px solid var(--cardBorder);
-  background:var(--btn);
-  color:var(--btnText);
-  font-weight:900;
-  cursor:pointer;
-}
+    /* =========================
+      BUTTONS (theme-safe)
+    ========================= */
+    button{
+      flex:1;
+      min-width:140px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid var(--cardBorder);
+      background:var(--btn);
+      color:var(--btnText);
+      font-weight:900;
+      cursor:pointer;
+    }
 
-button.primary{
-  background:var(--btn);
-  color:var(--btnText);
-  border-color:var(--cardBorder);
-}
+    button.primary{
+      background:var(--btn);
+      color:var(--btnText);
+      border-color:var(--cardBorder);
+    }
 
-button.danger{
-  border-color:#7F1D1D;
-  background:#7F1D1D;
-  color:#fff;
-}
+    button.danger{
+      border-color:#7F1D1D;
+      background:#7F1D1D;
+      color:#fff;
+    }
 
-/* ✅ Light mode: make buttons LIGHT like the UI */
-body.light button,
-body.light button.primary{
-  background:#FFFFFF;
-  color:#0F172A;
-  border-color:#E2E8F0;
-}
+    body.light button,
+    body.light button.primary{
+      background:#FFFFFF;
+      color:#0F172A;
+      border-color:#E2E8F0;
+    }
 
-/* ✅ Light mode: keep danger red */
-body.light button.danger{
-  background:#7F1D1D;
-  color:#fff;
-  border-color:#7F1D1D;
-}
+    body.light button.danger{
+      background:#7F1D1D;
+      color:#fff;
+      border-color:#7F1D1D;
+    }
 
-/* Disabled */
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
+    button:disabled{opacity:.5;cursor:not-allowed}
 
-.btnRow{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  align-items:stretch;
-}
+    .btnRow{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:stretch;
+    }
 
-/* Signal card: End Session full-width bar */
-#end{
-  flex: 0 0 100%;
-  width: 100%;
-  margin-top: 4px; /* adds separation from the top row */
-}
-
-/* News card: Auto-load button full-width bar */
-#loadNews{
-  flex: 0 0 100%;
-  width: 100%;
-}
-
-#saveNews, #clearNews{
-  flex: 1 1 48%;
-  min-width: 140px;
-}
-
+    #end{flex:0 0 100%;width:100%;margin-top:4px}
+    #loadNews{flex:0 0 100%;width:100%}
+    #saveNews,#clearNews{flex:1 1 48%;min-width:140px}
 
     input, select{width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--cardBorder);background:var(--soft);color:var(--text)}
     label{display:block;font-size:11px;opacity:.8;margin:8px 0 6px;color:var(--muted)}
@@ -141,7 +120,6 @@ button:disabled{
     .tiny{font-size:11px;opacity:.8;line-height:1.35;color:var(--muted)}
     .sep{height:1px;background:var(--cardBorder);margin:12px 0}
 
-    /* Optional: style for ticket buttons if your JS uses .btn */
     .btn{flex:1;min-width:140px;padding:12px;border-radius:16px;border:1px solid var(--cardBorder);background:var(--btn);color:var(--btnText);font-weight:900}
     .secondary{opacity:.92}
 
@@ -153,58 +131,71 @@ button:disabled{
       max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:9999
     }
     body.light #toast{background:#0f172a;color:#fff}
-/* Light-mode fixes for hard-coded pill backgrounds */
-body.light .green{ background: rgba(52, 211, 153, .12) !important; border-color: rgba(52, 211, 153, .35) !important; color:#065F46 !important; }
-body.light .red  { background: rgba(248, 113, 113, .12) !important; border-color: rgba(248, 113, 113, .35) !important; color:#7F1D1D !important; }
-body.light .blue { background: rgba(59, 130, 246, .12) !important; border-color: rgba(59, 130, 246, .35) !important; color:#1D4ED8 !important; }
-body.light .amber{ background: rgba(245, 158, 11, .14) !important; border-color: rgba(245, 158, 11, .35) !important; color:#92400E !important; }
 
-/* If any card was forced dark elsewhere */
-body.light #abCard{ background: var(--card) !important; }
- /* Mobile pill spacing fix */
-.pill { margin: 4px 4px; }
- 
- @media (max-width: 420px) {
-  .pill { margin: 6px 6px; }
-}
+    /* Light-mode fixes for hard-coded pill backgrounds */
+    body.light .green{ background: rgba(52, 211, 153, .12) !important; border-color: rgba(52, 211, 153, .35) !important; color:#065F46 !important; }
+    body.light .red  { background: rgba(248, 113, 113, .12) !important; border-color: rgba(248, 113, 113, .35) !important; color:#7F1D1D !important; }
+    body.light .blue { background: rgba(59, 130, 246, .12) !important; border-color: rgba(59, 130, 246, .35) !important; color:#1D4ED8 !important; }
+    body.light .amber{ background: rgba(245, 158, 11, .14) !important; border-color: rgba(245, 158, 11, .35) !important; color:#92400E !important; }
+    body.light #abCard{ background: var(--card) !important; }
 
- /* Sentiment IG-style */
-.sentGrid{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
-@media (max-width:420px){ .sentGrid{grid-template-columns:140px 1fr} }
+    .pill { margin: 4px 4px; }
+    @media (max-width: 420px) { .pill { margin: 6px 6px; } }
 
-.sentDonutWrap{position:relative;width:150px;height:150px}
-@media (max-width:420px){ .sentDonutWrap{width:140px;height:140px} }
+    /* =========================
+      GOLD STRENGTH CHART
+    ========================= */
+    .chartWrap{
+      width:100%;
+      height:120px;
+      border-radius:14px;
+      border:1px solid var(--cardBorder);
+      background:var(--soft);
+      overflow:hidden;
+      box-shadow:0 6px 18px var(--shadow);
+    }
+    canvas#goldChart{
+      width:100%;
+      height:120px;
+      display:block;
+    }
 
-.donut{
-  position:relative;
-  width:100%;height:100%;border-radius:999px;
-  background: conic-gradient(#60A5FA 0deg, #60A5FA 180deg, #F87171 180deg, #F87171 360deg);
-  border:1px solid var(--cardBorder);
-  box-shadow:0 10px 30px var(--shadow);
-}
-body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
+    /* =========================
+      Sentiment IG-style
+    ========================= */
+    .sentGrid{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+    @media (max-width:420px){ .sentGrid{grid-template-columns:140px 1fr} }
 
-.donut::after{
-  content:"";position:absolute;inset:18px;border-radius:999px;
-  background:var(--card);border:1px solid var(--cardBorder);
-}
+    .sentDonutWrap{position:relative;width:150px;height:150px}
+    @media (max-width:420px){ .sentDonutWrap{width:140px;height:140px} }
 
-.donutCenter{
-  position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
-  text-align:center;
-}
-.donutBig{font-weight:900;font-size:22px;line-height:1}
-.donutSmall{font-size:10px;opacity:.75;letter-spacing:.12em}
+    .donut{
+      position:relative;
+      width:100%;height:100%;border-radius:999px;
+      background: conic-gradient(#60A5FA 0deg, #60A5FA 180deg, #F87171 180deg, #F87171 360deg);
+      border:1px solid var(--cardBorder);
+      box-shadow:0 10px 30px var(--shadow);
+    }
+    body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
 
-.sentLine{display:flex;align-items:center;gap:8px}
-.dot{width:10px;height:10px;border-radius:99px;display:inline-block}
-.dot.long{background:#60A5FA}
-.dot.short{background:#F87171}
-.sentLabel{opacity:.85}
-.sentVal{font-size:16px}
+    .donut::after{
+      content:"";position:absolute;inset:18px;border-radius:999px;
+      background:var(--card);border:1px solid var(--cardBorder);
+    }
 
-<b id="sentClients">—</b>
+    .donutCenter{
+      position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+      text-align:center;
+    }
+    .donutBig{font-weight:900;font-size:22px;line-height:1}
+    .donutSmall{font-size:10px;opacity:.75;letter-spacing:.12em}
 
+    .sentLine{display:flex;align-items:center;gap:8px}
+    .dot{width:10px;height:10px;border-radius:99px;display:inline-block}
+    .dot.long{background:#60A5FA}
+    .dot.short{background:#F87171}
+    .sentLabel{opacity:.85}
+    .sentVal{font-size:16px}
   </style>
 </head>
 
@@ -262,7 +253,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
         <span class="pill amber" id="scorePill">Score: <b id="scoreVal">0/4</b></span>
       </div>
 
-      <!-- FIXED: properly closed btnRow -->
       <div class="btnRow" style="margin-top:12px">
         <button id="refresh" class="primary">Refresh</button>
         <button id="start" class="primary">Start Session</button>
@@ -273,7 +263,6 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
         Trade only when USD is clear + Gold confirms + Price is at Support/Resistance + Session direction matches.
       </div>
     </div>
-
 
     <!-- A + B -->
     <div class="card" id="abCard" style="margin:0">
@@ -419,6 +408,27 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
 
       <div class="tiny" style="margin-top:10px">
         Session windows use Nairobi time. If DST shifts NY/London times, adjust in config.js.
+      </div>
+    </div>
+
+    <!-- ✅ GOLD STRENGTH (M15) GRAPH CARD (matches app.js IDs) -->
+    <div class="card" id="goldStrengthCard">
+      <div class="row">
+        <div class="pill gray">📈 Gold Strength (M15)</div>
+        <div class="pill" id="chartPill">Trend: <b id="chartTrend">—</b></div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
+        <div class="pill">Now: <b id="chartNowVal">—</b></div>
+        <div class="pill">Change: <b id="chartChgVal">—</b></div>
+      </div>
+
+      <div class="chartWrap" style="margin-top:12px">
+        <canvas id="goldChart"></canvas>
+      </div>
+
+      <div class="tiny" style="margin-top:10px">
+        Line is based on recent M15 closes. Green = up, Red = down.
       </div>
     </div>
 
@@ -585,53 +595,52 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
       <div class="sub">Not financial advice. It’s a discipline system to stop low-quality trades.</div>
     </div>
 
-    <!-- SENTIMENT (INSIDE BODY) -->
     <!-- SENTIMENT (IG-style) -->
-<div class="card" id="sentCard">
-  <div class="row">
-    <div class="pill gray">👥 Client Sentiment</div>
-    <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
-  </div>
+    <div class="card" id="sentCard">
+      <div class="row">
+        <div class="pill gray">👥 Client Sentiment</div>
+        <div class="pill" id="sentimentPill">Status: <b id="sentimentState">Loading…</b></div>
+      </div>
 
-  <div class="sentGrid" style="margin-top:12px">
-    <div class="sentDonutWrap">
-      <div class="donut" id="sentDonut" aria-label="Sentiment donut"></div>
-      <div class="donutCenter">
-        <div class="donutBig" id="sentDominant">—</div>
-        <div class="donutSmall" id="sentDominantLabel">DOMINANT</div>
+      <div class="sentGrid" style="margin-top:12px">
+        <div class="sentDonutWrap">
+          <div class="donut" id="sentDonut" aria-label="Sentiment donut"></div>
+          <div class="donutCenter">
+            <div class="donutBig" id="sentDominant">—</div>
+            <div class="donutSmall" id="sentDominantLabel">DOMINANT</div>
+          </div>
+        </div>
+
+        <div class="sentStats">
+          <div class="sentLine">
+            <span class="dot long"></span>
+            <span class="sentLabel">Long</span>
+            <b class="sentVal" id="sentLong">—</b>
+          </div>
+          <div class="sentMeta tiny" id="sentLongLots">Lots: —</div>
+
+          <div class="sentLine" style="margin-top:10px">
+            <span class="dot short"></span>
+            <span class="sentLabel">Short</span>
+            <b class="sentVal" id="sentShort">—</b>
+          </div>
+          <div class="sentMeta tiny" id="sentShortLots">Lots: —</div>
+
+          <div class="sep"></div>
+
+          <div class="row" style="justify-content:flex-start;gap:8px">
+            <span class="pill amber" id="sentCrowdPill">Crowding: <b id="sentCrowdText">—</b></span>
+            <span class="pill" id="sentClientsPill">Clients: <b id="sentClients">—</b></span>
+          </div>
+
+          <div class="tiny" id="sentHint" style="margin-top:10px">
+            Filter only (no timing). Balanced sentiment = ignore. Extreme crowd (≥70%) = caution.
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="sentStats">
-      <div class="sentLine">
-        <span class="dot long"></span>
-        <span class="sentLabel">Long</span>
-        <b class="sentVal" id="sentLong">—</b>
-      </div>
-      <div class="sentMeta tiny" id="sentLongLots">Lots: —</div>
-
-      <div class="sentLine" style="margin-top:10px">
-        <span class="dot short"></span>
-        <span class="sentLabel">Short</span>
-        <b class="sentVal" id="sentShort">—</b>
-      </div>
-      <div class="sentMeta tiny" id="sentShortLots">Lots: —</div>
-
-      <div class="sep"></div>
-
-      <div class="row" style="justify-content:flex-start;gap:8px">
-        <span class="pill amber" id="sentCrowdPill">Crowding: <b id="sentCrowdText">—</b></span>
-        <span class="pill" id="sentClientsPill">Clients: <b id="sentClients">—</b></span>
-      </div>
-
-      <div class="tiny" id="sentHint" style="margin-top:10px">
-        Filter only (no timing). Balanced sentiment = ignore. Extreme crowd (≥70%) = caution.
-      </div>
-    </div>
-  </div>
-</div>
-
-    <!-- TRADE TICKET (INSIDE BODY) -->
+    <!-- TRADE TICKET -->
     <div class="card">
       <div class="row">
         <div class="pill gray">🧾 Trade Ticket (manual confirm)</div>
@@ -691,7 +700,5 @@ body.light .donut{box-shadow:0 10px 26px rgba(15,23,42,.10)}
   <!-- Cache-bust JS -->
   <script src="config.js?v=262"></script>
   <script src="app.js?v=262"></script>
-
-
 </body>
 </html>
